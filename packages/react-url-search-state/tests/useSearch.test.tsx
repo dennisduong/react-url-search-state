@@ -1,233 +1,219 @@
-import { render, screen, act } from "@testing-library/react";
-import { useEffect, useState } from "react";
-import { it, expect } from "vitest";
+import { screen } from "@testing-library/react";
+import { useEffect } from "react";
+import { describe, expect, it, vi } from "vitest";
 
-import {
-  SearchStateProvider
-} from '../src/context'
-import {
-  useSearch,
-} from "../src/useSearch";
-import {
-  stringifySearch,
-} from '../src/utils'
+import { createTestAdapter, renderWithSearchProvider, useSearch } from "./testHelpers";
 
-// Test adapter to simulate react-router behavior
-function TestAdapter({
-  children,
-  search,
-  onNavigateRef,
-}: {
-  children: any;
-  search: string;
-  onNavigateRef: (fn: (search: string) => void) => void;
-}) {
-  const [location, setLocation] = useState({ search });
-
-  // Register the navigate function into the test scope
-  useEffect(() => {
-    onNavigateRef((nextSearch: string) => {
-      setLocation({ search: nextSearch });
-    });
-  }, [onNavigateRef]);
-
-  return children({
-    location,
-    pushState: (_state: any, search = "?") => setLocation({ search }),
-    replaceState: (_state: any, search = "?") => setLocation({ search }),
-  });
+// Simple test component to surface validated state
+function DisplaySearch() {
+  const search = useSearch();
+  return <div data-testid="output">Page: {search.page}</div>;
 }
 
-it("uses context and updates on search change", async () => {
-  let triggerNavigate!: (next: string) => void;
-
-  // Basic validator function
-  const validateSearch = (input: any) => ({
-    foo: Number(input.foo) || 0,
-    bar: String(input.bar || "default"),
+describe("useSearch", () => {
+  it("returns validated search state and ignores unknown keys", () => {
+    const adapter = createTestAdapter("?unknown=hello");
+    renderWithSearchProvider(<DisplaySearch />, adapter);
+    expect(screen.getByTestId("output").textContent).toBe("Page: 1");
   });
 
-  // Test component
-  function TestComponent() {
-    const state = useSearch({ validateSearch });
+  it("parses valid params correctly", () => {
+    const adapter = createTestAdapter("?page=5");
+    renderWithSearchProvider(<DisplaySearch />, adapter);
+    expect(screen.getByTestId("output").textContent).toBe("Page: 5");
+  });
 
-    return (
-      <div>
-        <div data-testid="foo">{state.foo}</div>
-        <div data-testid="bar">{state.bar}</div>
-      </div>
+  it("falls back to default for invalid page", () => {
+    const adapter = createTestAdapter("?page=banana");
+    renderWithSearchProvider(<DisplaySearch />, adapter);
+    expect(screen.getByTestId("output").textContent).toBe("Page: 1");
+  });
+
+  it("falls back to defaults when values are missing", () => {
+    const adapter = createTestAdapter("?tab=unknown");
+    renderWithSearchProvider(<DisplaySearch />, adapter);
+    expect(screen.getByTestId("output").textContent).toBe("Page: 1");
+  });
+
+  // Ensures referential stability if nothing in the URL search string changes
+  it("returns stable reference if search state doesn't change even if re-rendered", () => {
+    const capturedStates: unknown[] = [];
+
+    const Capture = () => {
+      const search = useSearch();
+      useEffect(() => {
+        capturedStates.push(search);
+      });
+      return null;
+    };
+
+    const adapter = createTestAdapter("?page=2&tab=preview");
+    const { rerender } = renderWithSearchProvider(<Capture />, adapter);
+    rerender(<Capture />);
+
+    expect(capturedStates).toHaveLength(2);
+    expect(capturedStates[0]).toBe(capturedStates[1]);
+  });
+
+  it("throws when used outside of SearchStateProvider", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => useSearch()).toThrow();
+    errorSpy.mockRestore();
+  });
+
+  it("handles malformed query values gracefully", () => {
+    const adapter = createTestAdapter("?page=notanumber");
+    renderWithSearchProvider(<DisplaySearch />, adapter);
+    expect(screen.getByTestId("output").textContent).toContain("Page: 1");
+  });
+
+  // Selectors are re-evaluated if the selector identity changes
+  it("recomputes selected value if selector function changes", () => {
+    const spy = vi.fn();
+
+    const SelectorComponent = ({ select }: { select: (s: any) => unknown }) => {
+      const selected = useSearch({ select });
+      useEffect(() => {
+        spy(selected);
+      }, [selected]);
+      return null;
+    };
+
+    const adapter = createTestAdapter("?page=2&tab=preview");
+
+    const { rerender } = renderWithSearchProvider(
+      <SelectorComponent select={(s) => s.page} />,
+      adapter
     );
-  }
 
-  render(
-    <SearchStateProvider
-      adapter={({ children }) => (
-        <TestAdapter
-          search="?foo=123&bar=hello"
-          onNavigateRef={(fn) => {
-            triggerNavigate = fn;
-          }}
-        >
-          {children}
-        </TestAdapter>
-      )}
-    >
-      <TestComponent />
-    </SearchStateProvider>
-  );
+    // Same value, different transformation => triggers recompute
+    rerender(<SelectorComponent select={(s) => `${s.page}`} />);
 
-  expect(screen.getByTestId("foo").textContent).toBe("123");
-  expect(screen.getByTestId("bar").textContent).toBe("hello");
-
-  // Simulate URL update
-  act(() => {
-    triggerNavigate("?foo=999&bar=world");
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(spy).toHaveBeenNthCalledWith(1, 2);
+    expect(spy).toHaveBeenNthCalledWith(2, "2");
   });
 
-  expect(screen.getByTestId("foo").textContent).toBe("999");
-  expect(screen.getByTestId("bar").textContent).toBe("world");
-});
+  // Reacts to actual changes in validated state
+  it("recomputes selected value if underlying validated state changes", () => {
+    const spy = vi.fn();
 
-it("does not re-render when selected slice doesn't change", () => {
-  let triggerNavigate!: (search: string) => void;
-  let renderCount = 0;
+    const SelectorComponent = ({ select }: { select: (s: { page: number; tab: string }) => unknown }) => {
+      const selected = useSearch({ select });
+      useEffect(() => {
+        spy(selected);
+      }, [selected]);
+      return null;
+    };
 
-  const validateSearch = (input: any) => ({
-    foo: Number(input.foo) || 0,
-    bar: String(input.bar || "default"),
+    const adapter = createTestAdapter("?page=1&tab=preview");
+    const { rerender } = renderWithSearchProvider(
+      <SelectorComponent select={(s) => s.page} />,
+      adapter
+    );
+
+    adapter.replaceState(null, { search: "?page=2&tab=preview" });
+    rerender(<SelectorComponent select={(s) => s.page} />);
+
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(spy).toHaveBeenNthCalledWith(1, 1);
+    expect(spy).toHaveBeenNthCalledWith(2, 2);
   });
 
-  function TestComponent() {
-    const foo = useSearch({ validateSearch, select: (s) => s.foo });
-    renderCount++;
-    return <div data-testid="foo">{foo}</div>;
-  }
+  // Structural equality check prevents re-renders
+  it("does not recompute selected value if selected value is shallowly equal", () => {
+    const spy = vi.fn();
 
-  render(
-    <SearchStateProvider
-      adapter={({ children }) => (
-        <TestAdapter
-          search="?foo=1&bar=hello"
-          onNavigateRef={(fn) => {
-            triggerNavigate = fn;
-          }}
-        >
-          {children}
-        </TestAdapter>
-      )}
-    >
-      <TestComponent />
-    </SearchStateProvider>
-  );
+    const SelectorComponent = ({ select }: { select: (s: { page: number; tab: string }) => unknown }) => {
+      const selected = useSearch({ select });
+      useEffect(() => {
+        spy(selected);
+      }, [selected]);
+      return null;
+    };
 
-  expect(screen.getByTestId("foo").textContent).toBe("1");
-  const afterInitialRender = renderCount;
+    const adapter = createTestAdapter("?page=1&tab=preview");
+    const { rerender } = renderWithSearchProvider(
+      <SelectorComponent select={(s) => ({ onlyPage: s.page })} />,
+      adapter
+    );
 
-  // Trigger a change that should NOT affect the selected value
-  act(() => {
-    triggerNavigate("?foo=1&bar=world");
+    adapter.replaceState(null, { search: "?tab=preview&page=1" });
+    rerender(<SelectorComponent select={(s) => ({ onlyPage: s.page })} />);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith({ onlyPage: 1 });
   });
 
-  expect(screen.getByTestId("foo").textContent).toBe("1");
-  expect(renderCount).toBe(afterInitialRender); // should not re-render
+  // replaceEqualDeep ensures referential stability across re-renders with deeply equal values
+  it("maintains reference equality if selected value is deeply equal", () => {
+    const spy = vi.fn();
 
-  // Now trigger a change that DOES affect the selected value
-  act(() => {
-    triggerNavigate("?foo=99&bar=world");
+    const SelectorComponent = ({ select }: { select: (s: { page: number; tab: string }) => unknown }) => {
+      const selected = useSearch({ select });
+      useEffect(() => {
+        spy(selected);
+      }, [selected]);
+      return null;
+    };
+
+    const adapter = createTestAdapter("?page=1&tab=preview");
+    const { rerender } = renderWithSearchProvider(
+      <SelectorComponent select={(s) => ({ shallowCopy: { ...s } })} />,
+      adapter
+    );
+
+    rerender(<SelectorComponent select={(s) => ({ shallowCopy: { ...s } })} />);
+
+    expect(spy).toHaveBeenCalledTimes(1); // no change emitted thanks to replaceEqualDeep
   });
 
-  expect(screen.getByTestId("foo").textContent).toBe("99");
-  expect(renderCount).toBe(afterInitialRender + 1); // exactly 1 re-render
-});
-
-it("parses and selects nested JSON values", () => {
-  let triggerNavigate!: (search: string) => void;
-  let renderCount = 0;
-
-  const validateSearch = (input: any) => ({
-    user: {
-      id: Number(input.user?.id),
-      prefs: {
-        darkMode: Boolean(input.user?.prefs?.darkMode),
-        language: String(input.user?.prefs?.language ?? "en"),
-      },
-    },
+  it("supports selectors that return undefined", () => {
+    const spy = vi.fn();
+  
+    const SelectorComponent = ({ select }: { select: (s: { page: number; tab: string }) => unknown }) => {
+      const selected = useSearch({ select });
+      useEffect(() => {
+        spy(selected);
+      }, [selected]);
+      return null;
+    };
+  
+    const adapter = createTestAdapter("?page=1&tab=preview");
+    const { rerender } = renderWithSearchProvider(
+      <SelectorComponent select={() => undefined} />,
+      adapter
+    );
+  
+    // Simulate re-render with same selector that returns undefined again
+    rerender(<SelectorComponent select={() => undefined} />);
+  
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  function TestComponent() {
-    const language = useSearch({
-      validateSearch,
-      select: (s) => s.user.prefs.language,
-    });
-
-    renderCount++;
-
-    return <div data-testid="lang">{language}</div>;
-  }
-
-  const initial = stringifySearch({
-    user: {
-      id: 1,
-      prefs: {
-        darkMode: true,
-        language: "en",
-      },
-    },
+  it("uses default values when search string is empty", () => {
+    const adapter = createTestAdapter(""); // No search params
+    renderWithSearchProvider(<DisplaySearch />, adapter);
+    expect(screen.getByTestId("output").textContent).toBe("Page: 1"); // default
   });
 
-  render(
-    <SearchStateProvider
-      adapter={({ children }) => (
-        <TestAdapter
-          search={initial}
-          onNavigateRef={(fn) => {
-            triggerNavigate = fn;
-          }}
-        >
-          {children}
-        </TestAdapter>
-      )}
-    >
-      <TestComponent />
-    </SearchStateProvider>
-  );
-
-  const afterInitialRender = renderCount;
-  expect(screen.getByTestId("lang").textContent).toBe("en");
-
-  // Navigate to structurally same language value (should not re-render)
-  act(() => {
-    triggerNavigate(
-      stringifySearch({
-        user: {
-          id: 1,
-          prefs: {
-            darkMode: false,
-            language: "en",
-          },
+  it("throws if selector function throws", () => {
+    const adapter = createTestAdapter("?page=1&tab=preview");
+  
+    const SelectorComponent = () => {
+      // This selector throws!
+      useSearch({
+        select: () => {
+          throw new Error("Selector function threw an error");
         },
-      })
-    );
+      });
+      return null;
+    };
+  
+    expect(() => {
+      renderWithSearchProvider(<SelectorComponent />, adapter);
+    }).toThrowError("Selector function threw an error");
   });
-
-  expect(screen.getByTestId("lang").textContent).toBe("en");
-  expect(renderCount).toBe(afterInitialRender); // no re-render
-
-  // Navigate to a different language (should re-render)
-  act(() => {
-    triggerNavigate(
-      stringifySearch({
-        user: {
-          id: 1,
-          prefs: {
-            darkMode: false,
-            language: "es",
-          },
-        },
-      })
-    );
-  });
-
-  expect(screen.getByTestId("lang").textContent).toBe("es");
-  expect(renderCount).toBe(afterInitialRender + 1); // one re-render
+  
 });

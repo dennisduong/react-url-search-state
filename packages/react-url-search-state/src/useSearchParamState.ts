@@ -7,7 +7,7 @@ import type { ResolveValidatorFn, ValidateSearchFn } from "./validation";
 
 type SetValueFunction<T> = (prev: T) => T;
 
-type UseSearchParamStateReturn<
+export type UseSearchParamStateReturn<
   TValidateSearchFn extends ValidateSearchFn,
   TKey extends keyof ResolveValidatorFn<TValidateSearchFn>,
 > = readonly [
@@ -22,21 +22,12 @@ type UseSearchParamStateReturn<
   ) => void,
 ];
 
-export interface useSearchParamState<
-  TValidateSearchFn extends ValidateSearchFn,
-> {
-  <TKey extends keyof ResolveValidatorFn<TValidateSearchFn>>(
-    key: TKey,
-    options: UseNavigateOptions<TValidateSearchFn>,
-  ): UseSearchParamStateReturn<TValidateSearchFn, TKey>;
-}
-
 /**
  * Hook to access and update a specific search param value by key,
  * with both getter and setter fully typed based on the key's value type returned from `validateSearch`.
  *
  * Example:
- *   const [count, setCount] = useSearchParamState("count"); // `count` is number | undefined
+ *   const [count, setCount] = useSearchParamState("count", { validateSearch }); // `count` is number | undefined
  *   setCount(); // Type-safe
  *
  * The setter updates the URL search param using `useSetSearch`.
@@ -52,19 +43,22 @@ export const useSearchParamState = <
 
   const { validateSearch } = options;
 
-  const setSearch = useSetSearch(options);
-
   const value = useSearch({
     select: (search) => search[name],
     validateSearch,
   }) as ResolveValidatorFn<TValidateSearchFn>[TKey];
+
+  const setSearch = useSetSearch(options);
 
   function isSetValueFunction<T>(fn: unknown): fn is SetValueFunction<T> {
     return typeof fn === "function";
   }
 
   const setValue = useCallback(
-    (nextValue: SetValueFunction<Value> | Value, opts?: NavigateOptions) =>
+    (
+      nextValue: SetValueFunction<Value> | Value,
+      opts: NavigateOptions = {},
+    ) => {
       setSearch(
         (prev) => ({
           ...prev,
@@ -73,8 +67,9 @@ export const useSearchParamState = <
             : nextValue,
         }),
         opts,
-      ),
-    [setSearch],
+      );
+    },
+    [name, setSearch],
   );
 
   return [value, setValue] as const;

@@ -42,12 +42,11 @@ export class SearchStore {
    * in a meaningful change. Uses `replaceEqualDeep` for structural sharing.
    */
   setState = (nextSearch: string) => {
+    if (this.search === nextSearch) return;
     const nextState = replaceEqualDeep(this.state, parseSearch(nextSearch));
-    if (nextState !== this.state) {
-      this.search = nextSearch;
-      this.state = nextState;
-      this.emit();
-    }
+    this.search = nextSearch;
+    this.state = nextState;
+    this.emit();
   };
 
   /** Returns the current parsed search object. */

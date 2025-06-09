@@ -100,7 +100,7 @@ function encode(obj: any, pfx?: string) {
 // Copied from: https://github.com/TanStack/router/blob/v1.120.3/packages/router-core/src/searchParams.ts#L34
 export function stringifySearchWith(
   stringify: (search: any) => string,
-  parser?: (str: string) => any
+  parser?: (str: string) => any,
 ) {
   function stringifyValue(val: any) {
     if (typeof val === "object" && val !== null) {
@@ -244,7 +244,7 @@ export function cleanSearchObject(input: Record<string, unknown>) {
         .map((v) =>
           typeof v === "object" && v !== null
             ? cleanSearchObject(v as Record<string, unknown>)
-            : v
+            : v,
         )
         .filter((v) => v !== undefined);
 

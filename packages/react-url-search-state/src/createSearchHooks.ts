@@ -9,6 +9,7 @@ import type {
 import { useSearch } from "./useSearch";
 import type { UseSearchResult } from "./useSearch";
 import { useSearchParamState } from "./useSearchParamState";
+import type { UseSearchParamStateReturn } from "./useSearchParamState";
 import { useSetSearch } from "./useSetSearch";
 import type { SetSearchFunction } from "./useSetSearch";
 import { useSyncMissingSearchParams } from "./useSyncMissingSearchParams";
@@ -24,6 +25,31 @@ type NavigateOptions<TValidateSearchFn extends ValidateSearchFn> = Omit<
   "validateSearch"
 >;
 
+export type SearchHooks<TValidateSearchFn extends ValidateSearchFn> = {
+  useCreateUrlSearchParams: () => CreateUrlSearchParams<TValidateSearchFn>;
+  useNavigate: (
+    options?: NavigateOptions<TValidateSearchFn>,
+  ) => NavigateFunction<TValidateSearchFn>;
+  useSearch: <TSelected>(options?: {
+    select?: (input: ResolveValidatorFn<TValidateSearchFn>) => TSelected;
+  }) => UseSearchResult<TValidateSearchFn, TSelected>;
+  useSearchParamState: <
+    TKey extends keyof ResolveValidatorFn<TValidateSearchFn>,
+  >(
+    key: TKey,
+    options?: NavigateOptions<TValidateSearchFn>,
+  ) => UseSearchParamStateReturn<TValidateSearchFn, TKey>;
+  useSetSearch: (
+    options?: NavigateOptions<TValidateSearchFn>,
+  ) => SetSearchFunction<TValidateSearchFn>;
+  useSyncMissingSearchParams: (
+    options: Omit<
+      UseSyncMissingSearchParamsOptions<TValidateSearchFn>,
+      "validateSearch"
+    >,
+  ) => void;
+};
+
 /**
  * Factory for generating typed hooks bound to a specific `validateSearch` function.
  *
@@ -33,8 +59,9 @@ type NavigateOptions<TValidateSearchFn extends ValidateSearchFn> = Omit<
  * - `useCreateUrlSearchParams`: Utility for generating shareable URLs from current state
  * - `useNavigate`: Full navigation with path/hash and `onBeforeNavigate`
  * - `useSearch`: Reactive reader for validated + optionally selected state
+ * - `useSearchParamState`: Read + update a single param with typed getter/setter
  * - `useSetSearch`: Partial or full updates with merge support
- * - `useSyncMissingSearchParams`:
+ * - `useSyncMissingSearchParams`: Restore params from local/sessionStorage if missing
  *
  * 🧠 All hooks are auto-wired to the provided validator — no need to pass it manually.
  * 💡 Prefer `composeValidateSearch()` to build on parent schemas — ideal for nested routes.
@@ -50,31 +77,12 @@ type NavigateOptions<TValidateSearchFn extends ValidateSearchFn> = Omit<
  *   useCreateUrlSearchParams,
  *   useNavigate,
  *   useSearch,
+ *   useSearchParamState,
  *   useSetSearch,
  *   useSyncMissingSearchParams,
  * } = createSearchHooks(validateSearch);
  * ```
  */
-export type SearchHooks<TValidateSearchFn extends ValidateSearchFn> = {
-  useCreateUrlSearchParams: () => CreateUrlSearchParams<TValidateSearchFn>;
-  useNavigate: (
-    options?: NavigateOptions<TValidateSearchFn>,
-  ) => NavigateFunction<TValidateSearchFn>;
-  useSearch: <TSelected>(options?: {
-    select?: (input: ResolveValidatorFn<TValidateSearchFn>) => TSelected;
-  }) => UseSearchResult<TValidateSearchFn, TSelected>;
-  useSearchParamState: useSearchParamState<TValidateSearchFn>;
-  useSetSearch: (
-    options?: NavigateOptions<TValidateSearchFn>,
-  ) => SetSearchFunction<TValidateSearchFn>;
-  useSyncMissingSearchParams: (
-    options: Omit<
-      UseSyncMissingSearchParamsOptions<TValidateSearchFn>,
-      "validateSearch"
-    >,
-  ) => void;
-};
-
 export function createSearchHooks<TValidateSearchFn extends ValidateSearchFn>(
   validateSearch: TValidateSearchFn,
   opts?: {
@@ -99,6 +107,7 @@ export function createSearchHooks<TValidateSearchFn extends ValidateSearchFn>(
     return {
       ...options,
       onBeforeNavigate,
+      validateSearch,
     };
   };
 
@@ -120,20 +129,14 @@ export function createSearchHooks<TValidateSearchFn extends ValidateSearchFn>(
       return useCreateUrlSearchParams({ validateSearch });
     },
     useNavigate: function (options?: NavigateOptions<TValidateSearchFn>) {
-      return useNavigate({ ...createNavigateOptions(options), validateSearch });
+      return useNavigate(createNavigateOptions(options));
     },
     useSearch: useWrappedSearch,
     useSearchParamState: function (key, options) {
-      return useSearchParamState(key, {
-        ...createNavigateOptions(options),
-        validateSearch,
-      });
+      return useSearchParamState(key, createNavigateOptions(options));
     },
     useSetSearch: function (options?: NavigateOptions<TValidateSearchFn>) {
-      return useSetSearch({
-        ...createNavigateOptions(options),
-        validateSearch,
-      });
+      return useSetSearch(createNavigateOptions(options));
     },
     useSyncMissingSearchParams: function (
       options: Omit<

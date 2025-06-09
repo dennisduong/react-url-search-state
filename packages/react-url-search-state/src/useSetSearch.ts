@@ -50,9 +50,10 @@ export function useSetSearch<T extends ValidateSearchFn>(
 ) {
   const navigate = useNavigate(options);
 
-  const setSearch: SetSearchFunction<T> = (search, options) => {
-    navigate({ search }, options);
-  };
-
-  return useCallback(setSearch, [navigate]);
+  return useCallback<SetSearchFunction<T>>(
+    (search, options) => {
+      navigate({ search }, options);
+    },
+    [navigate],
+  );
 }

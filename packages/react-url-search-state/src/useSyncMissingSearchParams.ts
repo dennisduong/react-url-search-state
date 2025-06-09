@@ -19,20 +19,6 @@ export type UseSyncMissingSearchParamsOptions<
   >;
 };
 
-/**
- * Optional utility hooks that extend the core search state system.
- *
- * These are opt-in helpers built on top of the shared primitives
- * (`useSearch`, `useSetSearch`, `useSearchNavigate`, etc.).
- *
- * Use these when you need:
- * - Cross-app search param hydration
- * - Reactive, low-level search state subscriptions
- * - Advanced navigation orchestration
- *
- * 💡 Most apps won’t need these by default. They exist to support
- * complex coordination patterns and emerging edge cases.
- */
 export const useSyncMissingSearchParams = <
   TValidateSearchFn extends ValidateSearchFn,
 >(
@@ -78,7 +64,10 @@ export const useSyncMissingSearchParams = <
       }
     });
 
-    debug("[react-url-search-state:useSyncMissingSearchParams] missing: %s", missing);
+    debug(
+      "[react-url-search-state:useSyncMissingSearchParams] missing: %s",
+      missing,
+    );
 
     if (Object.keys(missing).length) {
       const { current: adapter } = adapterRef;

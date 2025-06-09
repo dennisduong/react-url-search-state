@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useRef, useSyncExternalStore } from "react";
 
 import { useSearchStateContext } from "./context";
 import { replaceEqualDeep } from "./utils";
@@ -47,9 +47,11 @@ export function useSearch<
   TValidateSearchFn extends ValidateSearchFn,
   TSelected,
 >(options: UseSearchOptions<TValidateSearchFn, TSelected>) {
-  const selectRef = useRef(options.select);
-  const validateSearchRef = useRef(options.validateSearch);
   const previousResult = useRef<TSelected | undefined>(undefined);
+  const selectRef = useRef(options.select);
+  selectRef.current = options.select;
+  const validateSearchRef = useRef(options.validateSearch);
+  validateSearchRef.current = options.validateSearch;
 
   const { store } = useSearchStateContext();
 
@@ -70,14 +72,6 @@ export function useSearch<
     }
     return validated;
   }, [store]);
-
-  useEffect(() => {
-    selectRef.current = options.select;
-  }, [options.select]);
-
-  useEffect(() => {
-    validateSearchRef.current = options.validateSearch;
-  }, [options.validateSearch]);
 
   return useSyncExternalStore(store.subscribe, getSnapshot) as UseSearchResult<
     TValidateSearchFn,

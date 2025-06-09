@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 
 import { useSearchStateContext } from "./context";
 import type { SearchStateContextValue } from "./context";
@@ -15,26 +15,30 @@ export type NavigateOptions = {
   state?: any;
 };
 
-let frameRef: number | null = null;
-let updateQueue: {
+type QueueItem = {
   updater: (validated: AnySearch) => AnySearch;
   options: NavigateOptions;
   path: Pick<Path, "hash" | "pathname">;
-}[] = [];
+};
 
-function flushNavigate(
+let frameRef: number | null = null;
+let updateQueue: QueueItem[] = [];
+
+export function flushNavigate(
   context: SearchStateContextValue,
   callback: (
     nextSearch: AnySearch,
     nextPath: Path,
     options: NavigateOptions,
   ) => void,
+  queue: QueueItem[] = updateQueue,
 ) {
-  const pendingQueue = updateQueue;
-  updateQueue = [];
+  const pendingQueue = queue.splice(0);
   frameRef = null;
   if (!pendingQueue.length) return;
   const { adapterRef, store } = context;
+  const { current: adapter } = adapterRef;
+  const { location: prevPath } = adapter;
   let finalSearch = store.getState();
   let finalPath: Path = {};
   let finalOpts: NavigateOptions = {};
@@ -45,20 +49,19 @@ function flushNavigate(
   }
   const cleaned = cleanSearchObject(finalSearch);
   const nextSearch = stringifySearch(cleaned as AnySearch);
-  const prevLocation = adapterRef.current.location;
   if (
-    nextSearch !== prevLocation.search ||
-    (finalPath.pathname && finalPath.pathname !== prevLocation.pathname) ||
-    (finalPath.hash && finalPath.hash !== prevLocation.hash)
+    nextSearch !== prevPath.search ||
+    (finalPath.pathname && finalPath.pathname !== prevPath.pathname) ||
+    (finalPath.hash && finalPath.hash !== prevPath.hash)
   ) {
-    const nextLocation = { ...finalPath, search: nextSearch };
+    const nextPath = { ...finalPath, search: nextSearch };
     debug(
-      "[react-url-search-state:flushNavigate] cleaned: %s; nextLocation: %s; finalOptions: %s",
+      "[react-url-search-state:flushNavigate] cleaned: %s; nextPath: %s; finalOptions: %s",
       cleaned,
-      nextLocation,
+      nextPath,
       finalOpts,
     );
-    callback(cleaned, nextLocation, finalOpts);
+    callback(cleaned, nextPath, finalOpts);
   }
 }
 
@@ -130,7 +133,7 @@ export type NavigateFunction<T extends ValidateSearchFn> = <
  * @remarks
  * - Must be used within a `<SearchStateProvider>`. Seriously — we rely on the context.
  * - If you don’t need pathname or hash control, prefer `useSetSearch()` instead.
- * - Changes won’t be applied immediately; they're batched for performance.
+ * - Navigation changes are batched via `requestAnimationFrame` for performance and stability.
  */
 export function useNavigate<T extends ValidateSearchFn>(
   options: UseNavigateOptions<T>,
@@ -138,17 +141,12 @@ export function useNavigate<T extends ValidateSearchFn>(
   const { validateSearch, onBeforeNavigate } = options;
 
   const onBeforeNavigateRef = useRef(onBeforeNavigate);
+  onBeforeNavigateRef.current = onBeforeNavigate;
+
   const validateSearchRef = useRef(validateSearch);
+  validateSearchRef.current = validateSearch;
 
   const context = useSearchStateContext();
-
-  useEffect(() => {
-    onBeforeNavigateRef.current = onBeforeNavigate;
-  }, [onBeforeNavigate]);
-
-  useEffect(() => {
-    validateSearchRef.current = validateSearch;
-  }, [validateSearch]);
 
   const navigate: NavigateFunction<T> = (
     { search, ...path },
@@ -167,8 +165,7 @@ export function useNavigate<T extends ValidateSearchFn>(
           nextParsed,
         ) as InferValidatedSearch<T>;
         return {
-          // ...nextParsed, // TODO: 🤔 i need to think this line thorough here...
-          // Clears all validated fields if "merge" is `false`, otherwise we effectively "merge"
+          // When merge is false, clear all validated fields. This ensures only the next override takes effect.
           ...(effectiveMerge
             ? nextValidated
             : Object.fromEntries(
@@ -183,14 +180,11 @@ export function useNavigate<T extends ValidateSearchFn>(
 
     if (frameRef === null) {
       frameRef = requestAnimationFrame(() => {
-        flushNavigate(context, (nextSearch, nextLocation, opts) => {
-          onBeforeNavigate?.(
-            nextSearch as InferValidatedSearch<T>,
-            nextLocation,
-          );
+        flushNavigate(context, (nextSearch, nextPath, opts) => {
+          onBeforeNavigate?.(nextSearch as InferValidatedSearch<T>, nextPath);
           (opts.replace ? adapter.replaceState : adapter.pushState)(
             opts.state,
-            nextLocation,
+            nextPath,
           );
         });
       });

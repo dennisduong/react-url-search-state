@@ -53,7 +53,7 @@ export class ValidationError extends Error {
  *
  * @remarks
  * - The final result merges both layers into one object.
- * - Keys in the child validator take precedence.
+ * - Keys returned by the child validator override those in the base validator, allowing flexible layering.
  */
 export function composeValidateSearch<
   TBase extends Record<string, any>,

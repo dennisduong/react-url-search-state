@@ -43,7 +43,9 @@
       "packages/*"
     ],
     "nohoist": [
-      "**/react-router-dom"
+      "**/react-router-dom",
+      "**/wouter"
     ]
-  }
+  },
+  "version": "0.0.1-alpha.0"
 }

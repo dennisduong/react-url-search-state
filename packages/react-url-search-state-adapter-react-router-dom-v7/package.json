@@ -1,6 +1,6 @@
 {
-  "name": "react-url-search-state-adapter-react-router-dom-v6",
-  "description": "react-router-dom@6 adapter for react-url-search-state",
+  "name": "react-url-search-state-adapter-react-router-dom-v7",
+  "description": "react-router-dom@7 adapter for react-url-search-state",
   "private": false,
   "version": "0.1.0-alpha.0",
   "type": "module",
@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "react": "^19.1.0",
-    "react-router-dom": "^6.30.1",
+    "react-router-dom": "^7.6.2",
     "react-url-search-state": "file:../react-url-search-state"
   },
   "devDependencies": {

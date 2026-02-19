@@ -150,5 +150,3 @@ export class ValidatedSearchCache {
     this.cache = new WeakMap();
   };
 }
-
-export const validatedSearchCache = new ValidatedSearchCache();

@@ -1,7 +1,6 @@
 import { useCallback, useRef } from "react";
 
 import { useSearchStateContext } from "./context";
-import { validatedSearchCache } from "./validation";
 import type { ResolveValidatorFn, ValidateSearchFn } from "./validation";
 import { stringifySearch } from "./utils";
 
@@ -54,7 +53,7 @@ export const useCreateUrlSearchParams = <
   const validateSearchRef = useRef(validateSearch);
   validateSearchRef.current = validateSearch;
 
-  const { store } = useSearchStateContext();
+  const { cache, store } = useSearchStateContext();
 
   const createUrlSearchParams: CreateUrlSearchParams<TValidateSearchFn> = (
     init,
@@ -65,7 +64,7 @@ export const useCreateUrlSearchParams = <
       options?.replaceAll === true
         ? (init ?? {})
         : {
-            ...validatedSearchCache.get({
+            ...cache.get({
               validateSearch,
               search: store.getState(),
             }),
@@ -75,5 +74,5 @@ export const useCreateUrlSearchParams = <
     return new URLSearchParams(serializedSearch);
   };
 
-  return useCallback(createUrlSearchParams, [store]);
+  return useCallback(createUrlSearchParams, [cache, store]);
 };

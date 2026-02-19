@@ -23,7 +23,6 @@ export const {
   useSearch,
   useSearchParamState,
   useSetSearch,
-  useSyncMissingSearchParams,
 } = createSearchHooks(validateSearch);
 
 // ─────────────────────────────

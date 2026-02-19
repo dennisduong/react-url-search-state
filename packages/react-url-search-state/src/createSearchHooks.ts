@@ -12,8 +12,6 @@ import { useSearchParamState } from "./useSearchParamState";
 import type { UseSearchParamStateReturn } from "./useSearchParamState";
 import { useSetSearch } from "./useSetSearch";
 import type { SetSearchFunction } from "./useSetSearch";
-import { useSyncMissingSearchParams } from "./useSyncMissingSearchParams";
-import type { UseSyncMissingSearchParamsOptions } from "./useSyncMissingSearchParams";
 import type {
   InferValidatedSearch,
   ResolveValidatorFn,
@@ -42,12 +40,6 @@ export type SearchHooks<TValidateSearchFn extends ValidateSearchFn> = {
   useSetSearch: (
     options?: NavigateOptions<TValidateSearchFn>,
   ) => SetSearchFunction<TValidateSearchFn>;
-  useSyncMissingSearchParams: (
-    options: Omit<
-      UseSyncMissingSearchParamsOptions<TValidateSearchFn>,
-      "validateSearch"
-    >,
-  ) => void;
 };
 
 /**
@@ -61,7 +53,6 @@ export type SearchHooks<TValidateSearchFn extends ValidateSearchFn> = {
  * - `useSearch`: Reactive reader for validated + optionally selected state
  * - `useSearchParamState`: Read + update a single param with typed getter/setter
  * - `useSetSearch`: Partial or full updates with merge support
- * - `useSyncMissingSearchParams`: Restore params from local/sessionStorage if missing
  *
  * 🧠 All hooks are auto-wired to the provided validator — no need to pass it manually.
  * 💡 Prefer `composeValidateSearch()` to build on parent schemas — ideal for nested routes.
@@ -79,7 +70,6 @@ export type SearchHooks<TValidateSearchFn extends ValidateSearchFn> = {
  *   useSearch,
  *   useSearchParamState,
  *   useSetSearch,
- *   useSyncMissingSearchParams,
  * } = createSearchHooks(validateSearch);
  * ```
  */
@@ -137,14 +127,6 @@ export function createSearchHooks<TValidateSearchFn extends ValidateSearchFn>(
     },
     useSetSearch: function (options?: NavigateOptions<TValidateSearchFn>) {
       return useSetSearch(createNavigateOptions(options));
-    },
-    useSyncMissingSearchParams: function (
-      options: Omit<
-        UseSyncMissingSearchParamsOptions<TValidateSearchFn>,
-        "validateSearch"
-      >,
-    ) {
-      useSyncMissingSearchParams({ ...options, validateSearch });
     },
   };
 }

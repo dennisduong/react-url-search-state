@@ -16,7 +16,6 @@
 - **Router-agnostic** — Adapters for React Router v5/v6/v7, Wouter v3, or bring your own
 - **Structural sharing** — Unchanged subtrees keep referential equality (no wasted rerenders)
 - **Batched navigation** — Multiple updates in one frame are flushed as a single URL change
-- **Storage fallback** — Persist and restore params from `localStorage` / `sessionStorage`
 - **Zero non-React deps** — The core library has no dependencies beyond React
 
 ---
@@ -133,7 +132,6 @@ const {
   useSetSearch,
   useSearchParamState,
   useCreateUrlSearchParams,
-  useSyncMissingSearchParams,
 } = createSearchHooks(validateSearch);
 ```
 
@@ -258,21 +256,6 @@ const fresh = createParams({ q: "foo", page: 1, sort: "asc" }, { replaceAll: tru
 
 ---
 
-### `useSyncMissingSearchParams(options)`
-
-Restores missing search params from `localStorage` or `sessionStorage` on mount. Pair with `persistSearchParamsToStorage` to save params when they change.
-
-```ts
-useSyncMissingSearchParams({
-  params: {
-    sort: { storage: "local" },
-    q: { storage: "session", namespace: "my-app" },
-  },
-});
-```
-
----
-
 ### `SearchStateProvider`
 
 Context provider that connects the core library to your router.
@@ -325,23 +308,6 @@ const childValidator = composeValidateSearch(baseValidator, (base, raw) => ({
 
 ---
 
-### `persistSearchParamsToStorage(nextSearch, names, options?)`
-
-Saves selected search params to web storage. Use with `onBeforeNavigate` to persist on every navigation.
-
-```ts
-const hooks = createSearchHooks(validateSearch, {
-  onBeforeNavigate: (nextSearch) => {
-    persistSearchParamsToStorage(nextSearch, ["sort", "q"], {
-      storage: "local",       // "local" (default) or "session"
-      namespace: "my-app",    // optional key prefix
-    });
-  },
-});
-```
-
----
-
 ### `ValidationError`
 
 Error thrown when a `validateSearch` function fails. Caught internally and re-thrown as a `ValidationError` with the original message.
@@ -374,6 +340,48 @@ const MyAdapter: SearchStateAdapterComponent = ({ children }) => {
 
   return children({ location, pushState, replaceState });
 };
+```
+
+---
+
+## Cookbook
+
+### Persist & restore search params from storage
+
+Storage persistence is outside the scope of the core library, but easy to implement with the existing hooks.
+
+**Restore on mount** — reads saved params from `localStorage` and merges any missing ones into the URL:
+
+```tsx
+import { useState, useEffect } from "react";
+import { useSetSearch } from "./hooks";
+
+function EnsureSearchParams({ children }: { children: React.ReactNode }) {
+  const setSearch = useSetSearch();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("my-app:filters");
+    if (saved) {
+      const restored = JSON.parse(saved);
+      setSearch((prev) => ({ ...prev, ...restored }), { replace: true });
+    }
+    setReady(true);
+  }, []);
+
+  if (!ready) return null;
+  return children;
+}
+```
+
+**Persist on navigate** — saves params to `localStorage` whenever the URL changes via `onBeforeNavigate`:
+
+```ts
+const hooks = createSearchHooks(validateSearch, {
+  onBeforeNavigate: (nextSearch) => {
+    localStorage.setItem("my-app:filters", JSON.stringify(nextSearch));
+  },
+});
 ```
 
 ---

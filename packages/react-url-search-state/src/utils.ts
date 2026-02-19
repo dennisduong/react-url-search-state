@@ -1,5 +1,3 @@
-export const isBrowser = typeof window !== "undefined";
-
 type OptionalKeys<T> = {
   [K in keyof T]-?: undefined extends T[K] ? K : never;
 }[keyof T];
@@ -260,21 +258,4 @@ export function cleanSearchObject(input: Record<string, unknown>) {
   }
 
   return result;
-}
-
-// Attempts to safely JSON.stringify an input. Falls back to raw value on error.
-export function stringifyValue(val: unknown) {
-  if (typeof val === "object" && val !== null) {
-    try {
-      return JSON.stringify(val);
-    } catch (err) {
-      // silent
-    }
-  }
-  return val;
-}
-
-// Constructs a scoped key for local/session storage (e.g. "namespace:key").
-export function createStoreKey(name: string, namespace?: string) {
-  return `${namespace ? `${namespace}:` : ""}${name}`;
 }

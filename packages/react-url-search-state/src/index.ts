@@ -1,6 +1,5 @@
 export { SearchStateProvider } from "./context";
 export { createSearchHooks } from "./createSearchHooks";
-export { persistSearchParamsToStorage } from "./helpers";
 export {
   composeValidateSearch,
   defineValidateSearch,

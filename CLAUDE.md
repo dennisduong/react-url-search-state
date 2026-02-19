@@ -48,7 +48,6 @@ Adapters are thin wrappers around router-specific hooks (`useLocation`, `useNavi
 - `useSetSearch` — search-only updates convenience wrapper
 - `useSearchParamState` — `useState`-like API for a single param
 - `useCreateUrlSearchParams` — generate `URLSearchParams` for link building
-- `useSyncMissingSearchParams` — restore params from localStorage/sessionStorage
 
 ### Other Key Patterns
 

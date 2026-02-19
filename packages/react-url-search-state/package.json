@@ -37,10 +37,11 @@
     "access": "public",
     "tag": "alpha"
   },
-  "dependencies": {
-    "react": "^19.1.0"
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "react": "^19.1.0",
     "@eslint/js": "^9.25.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",

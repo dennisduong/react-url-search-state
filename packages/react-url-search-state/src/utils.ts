@@ -1,3 +1,5 @@
+export const isBrowser = typeof window !== "undefined";
+
 type OptionalKeys<T> = {
   [K in keyof T]-?: undefined extends T[K] ? K : never;
 }[keyof T];

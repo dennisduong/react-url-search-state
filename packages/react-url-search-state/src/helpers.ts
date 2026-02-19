@@ -1,5 +1,5 @@
 import type { AnySearch } from "./types";
-import { createStoreKey, stringifyValue } from "./utils";
+import { createStoreKey, isBrowser, stringifyValue } from "./utils";
 
 /**
  * Saves selected search params to localStorage/sessionStorage.
@@ -15,6 +15,7 @@ export function persistSearchParamsToStorage(
   } = {},
 ) {
   const { namespace, storage = "local" } = options;
+  if (!isBrowser) return;
   const store = window[`${storage}Storage`];
   for (const name of names) {
     const searchValue = nextSearch[name];

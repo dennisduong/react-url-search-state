@@ -14,7 +14,7 @@ export type UseSyncMissingSearchParamsOptions<
     string,
     {
       storage?: "local" | "session";
-      storageNamespace?: string;
+      namespace?: string;
     }
   >;
 };
@@ -40,12 +40,12 @@ export const useSyncMissingSearchParams = <
     let missing: Record<string, string> = {};
     Object.entries(paramsRef.current).forEach(([name, config]) => {
       if (searchParams.has(name)) return;
-      const { storage, storageNamespace } = config;
+      const { storage, namespace } = config;
 
       let value = searchState[name];
       if (storage && isBrowser) {
         const store = window[`${storage}Storage`];
-        const storeKey = createStoreKey(name, storageNamespace);
+        const storeKey = createStoreKey(name, namespace);
         const storeValue = store.getItem(storeKey);
 
         if (storeValue !== null) {

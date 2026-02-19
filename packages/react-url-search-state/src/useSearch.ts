@@ -2,7 +2,6 @@ import { useCallback, useRef, useSyncExternalStore } from "react";
 
 import { useSearchStateContext } from "./context";
 import { replaceEqualDeep } from "./utils";
-import { validatedSearchCache } from "./validation";
 import type { ResolveValidatorFn, ValidateSearchFn } from "./validation";
 
 export type UseSearchOptions<
@@ -53,12 +52,12 @@ export function useSearch<
   const validateSearchRef = useRef(options.validateSearch);
   validateSearchRef.current = options.validateSearch;
 
-  const { store } = useSearchStateContext();
+  const { cache, store } = useSearchStateContext();
 
   const getSnapshot = useCallback(() => {
     const { current: select } = selectRef;
     const { current: validateSearch } = validateSearchRef;
-    const validated = validatedSearchCache.get({
+    const validated = cache.get({
       validateSearch,
       search: store.getState(),
     }) as ResolveValidatorFn<TValidateSearchFn>;
@@ -71,7 +70,7 @@ export function useSearch<
       return newSlice;
     }
     return validated;
-  }, [store]);
+  }, [cache, store]);
 
   return useSyncExternalStore(store.subscribe, getSnapshot) as UseSearchResult<
     TValidateSearchFn,

@@ -10,6 +10,7 @@ import {
 
 import { SearchStore } from "./store";
 import type { SearchStateAdapter, SearchStateAdapterComponent } from "./types";
+import { ValidatedSearchCache } from "./validation";
 
 /**
  * 📣 Note: In React 18, `ref.current` is typed as `T | null`, even when initialized.
@@ -23,6 +24,7 @@ type RefObject<T> = React.RefObject<T> & {
 
 export type SearchStateContextValue = {
   adapterRef: RefObject<SearchStateAdapter>;
+  cache: ValidatedSearchCache;
   store: SearchStore;
 };
 
@@ -49,8 +51,12 @@ function SearchStateProviderInner(props: {
   adapterRef.current = adapter;
 
   const [store] = useState(() => new SearchStore(location.search));
+  const [cache] = useState(() => new ValidatedSearchCache());
 
-  const value = useMemo(() => ({ adapterRef, store }), [adapterRef, store]);
+  const value = useMemo(
+    () => ({ adapterRef, cache, store }),
+    [adapterRef, cache, store],
+  );
 
   useEffect(() => {
     store.setState(location.search);

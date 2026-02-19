@@ -266,7 +266,7 @@ Restores missing search params from `localStorage` or `sessionStorage` on mount.
 useSyncMissingSearchParams({
   params: {
     sort: { storage: "local" },
-    q: { storage: "session", storageNamespace: "my-app" },
+    q: { storage: "session", namespace: "my-app" },
   },
 });
 ```

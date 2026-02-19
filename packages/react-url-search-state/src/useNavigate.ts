@@ -3,26 +3,13 @@ import { useCallback, useRef } from "react";
 import { useSearchStateContext } from "./context";
 import type { SearchStateContextValue } from "./context";
 import { debug } from "./debug";
+import type { NavigateOptions, QueueItem } from "./navigationQueue";
+export type { NavigateOptions } from "./navigationQueue";
 import { cleanSearchObject, stringifySearch } from "./utils";
 import type { OmitOptional } from "./utils";
 import type { AnySearch, Path } from "./types";
 import { runValidateSearchOrThrow } from "./validation";
 import type { InferValidatedSearch, ValidateSearchFn } from "./validation";
-
-export type NavigateOptions = {
-  merge?: boolean;
-  replace?: boolean;
-  state?: any;
-};
-
-type QueueItem = {
-  updater: (validated: AnySearch) => AnySearch;
-  options: NavigateOptions;
-  path: Pick<Path, "hash" | "pathname">;
-};
-
-let frameRef: number | null = null;
-let updateQueue: QueueItem[] = [];
 
 export function flushNavigate(
   context: SearchStateContextValue,
@@ -31,10 +18,10 @@ export function flushNavigate(
     nextPath: Path,
     options: NavigateOptions,
   ) => void,
-  queue: QueueItem[] = updateQueue,
+  queue: QueueItem[] = context.navigationQueue.items,
 ) {
   const pendingQueue = queue.splice(0);
-  frameRef = null;
+  context.navigationQueue.frameRef = null;
   if (!pendingQueue.length) return;
   const { adapterRef, store } = context;
   const { current: adapter } = adapterRef;
@@ -157,7 +144,9 @@ export function useNavigate<T extends ValidateSearchFn>(
     const { current: onBeforeNavigate } = onBeforeNavigateRef;
     const { current: validateSearch } = validateSearchRef;
 
-    updateQueue.push({
+    const { navigationQueue } = context;
+
+    navigationQueue.items.push({
       updater: (nextParsed) => {
         const effectiveMerge = merge ?? true;
         const nextValidated = runValidateSearchOrThrow(
@@ -178,8 +167,8 @@ export function useNavigate<T extends ValidateSearchFn>(
       path,
     });
 
-    if (frameRef === null) {
-      frameRef = requestAnimationFrame(() => {
+    if (navigationQueue.frameRef === null) {
+      navigationQueue.frameRef = requestAnimationFrame(() => {
         flushNavigate(context, (nextSearch, nextPath, opts) => {
           onBeforeNavigate?.(nextSearch as InferValidatedSearch<T>, nextPath);
           (opts.replace ? adapter.replaceState : adapter.pushState)(

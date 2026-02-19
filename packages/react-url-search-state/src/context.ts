@@ -10,6 +10,7 @@ import {
 
 import { SearchStore } from "./store";
 import type { SearchStateAdapter, SearchStateAdapterComponent } from "./types";
+import { NavigationQueue } from "./navigationQueue";
 import { ValidatedSearchCache } from "./validation";
 
 /**
@@ -25,6 +26,7 @@ type RefObject<T> = React.RefObject<T> & {
 export type SearchStateContextValue = {
   adapterRef: RefObject<SearchStateAdapter>;
   cache: ValidatedSearchCache;
+  navigationQueue: NavigationQueue;
   store: SearchStore;
 };
 
@@ -52,10 +54,11 @@ function SearchStateProviderInner(props: {
 
   const [store] = useState(() => new SearchStore(location.search));
   const [cache] = useState(() => new ValidatedSearchCache());
+  const [navigationQueue] = useState(() => new NavigationQueue());
 
   const value = useMemo(
-    () => ({ adapterRef, cache, store }),
-    [adapterRef, cache, store],
+    () => ({ adapterRef, cache, navigationQueue, store }),
+    [adapterRef, cache, navigationQueue, store],
   );
 
   useEffect(() => {

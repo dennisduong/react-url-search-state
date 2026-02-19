@@ -3,7 +3,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { SearchStateContextValue } from "../src/context";
 import { SearchStore } from "../src/store";
 import type { AnySearch } from "../src/types";
+import { NavigationQueue } from "../src/navigationQueue";
 import { flushNavigate } from "../src/useNavigate";
+import { ValidatedSearchCache } from "../src/validation";
 
 describe("flushNavigate (functional queue)", () => {
   let store: SearchStore;
@@ -25,6 +27,8 @@ describe("flushNavigate (functional queue)", () => {
           replaceState: replaceSpy,
         },
       },
+      cache: new ValidatedSearchCache(),
+      navigationQueue: new NavigationQueue(),
       store,
     };
   });

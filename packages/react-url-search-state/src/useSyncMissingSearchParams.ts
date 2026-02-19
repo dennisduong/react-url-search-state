@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { useSearchStateContext } from "./context";
 import { debug } from "./debug";
 import type { AnySearch } from "./types";
-import { createStoreKey, parseSearch, stringifyValue } from "./utils";
+import { createStoreKey, isBrowser, parseSearch, stringifyValue } from "./utils";
 import type { ValidateSearchFn } from "./validation";
 
 export type UseSyncMissingSearchParamsOptions<
@@ -43,7 +43,7 @@ export const useSyncMissingSearchParams = <
       const { storage, storageNamespace } = config;
 
       let value = searchState[name];
-      if (storage) {
+      if (storage && isBrowser) {
         const store = window[`${storage}Storage`];
         const storeKey = createStoreKey(name, storageNamespace);
         const storeValue = store.getItem(storeKey);
@@ -75,7 +75,7 @@ export const useSyncMissingSearchParams = <
       Object.entries(missing).forEach(([name, value]) => {
         searchParams.set(name, value);
       });
-      replaceState(undefined, { search: searchParams.toString() });
+      replaceState(undefined, { search: `?${searchParams.toString()}` });
     }
   }, [location.search, validateSearch]);
 };

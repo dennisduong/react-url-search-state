@@ -15,4 +15,12 @@ export type QueueItem = {
 export class NavigationQueue {
   frameRef: number | null = null;
   items: QueueItem[] = [];
+
+  destroy() {
+    if (this.frameRef !== null) {
+      cancelAnimationFrame(this.frameRef);
+      this.frameRef = null;
+    }
+    this.items = [];
+  }
 }

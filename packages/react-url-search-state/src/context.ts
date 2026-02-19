@@ -65,6 +65,12 @@ function SearchStateProviderInner(props: {
     store.setState(location.search);
   }, [location.search, store]);
 
+  useEffect(() => {
+    return () => {
+      navigationQueue.destroy();
+    };
+  }, [navigationQueue]);
+
   return createElement(SearchStateContext.Provider, { value }, children);
 }
 

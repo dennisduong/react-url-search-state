@@ -1,5 +1,4 @@
-import { useCreateUrlSearchParams } from "./useCreateUrlSearchParams";
-import type { CreateUrlSearchParams } from "./useCreateUrlSearchParams";
+import { buildSearchString as _buildSearchString } from "./buildSearchString";
 import { useNavigate } from "./useNavigate";
 import type {
   NavigateFunction,
@@ -23,8 +22,10 @@ type NavigateOptions<TValidateSearchFn extends ValidateSearchFn> = Omit<
   "validateSearch"
 >;
 
-export type SearchHooks<TValidateSearchFn extends ValidateSearchFn> = {
-  useCreateUrlSearchParams: () => CreateUrlSearchParams<TValidateSearchFn>;
+export type SearchUtils<TValidateSearchFn extends ValidateSearchFn> = {
+  buildSearchString: (
+    params: ResolveValidatorFn<TValidateSearchFn>,
+  ) => string;
   useNavigate: (
     options?: NavigateOptions<TValidateSearchFn>,
   ) => NavigateFunction<TValidateSearchFn>;
@@ -43,18 +44,21 @@ export type SearchHooks<TValidateSearchFn extends ValidateSearchFn> = {
 };
 
 /**
- * Factory for generating typed hooks bound to a specific `validateSearch` function.
+ * Factory for creating a typed search utility set bound to a specific `validateSearch` function.
  *
- * This is the recommended entry point for most apps and routes.
- * It returns a scoped set of hooks that operate on a validated shape of search params:
+ * Returns hooks and utilities pre-wired to your validator — no need to pass
+ * it manually on every call. This is the recommended entry point for most apps and routes.
  *
- * - `useCreateUrlSearchParams`: Utility for generating shareable URLs from current state
+ * **Hooks:**
  * - `useNavigate`: Full navigation with path/hash and `onBeforeNavigate`
  * - `useSearch`: Reactive reader for validated + optionally selected state
  * - `useSearchParamState`: Read + update a single param with typed getter/setter
  * - `useSetSearch`: Partial or full updates with merge support
  *
- * 🧠 All hooks are auto-wired to the provided validator — no need to pass it manually.
+ * **Utilities:**
+ * - `buildSearchString`: Pure function for generating validated search strings for link building
+ *
+ * 🧠 All hooks and utilities are auto-wired to the provided validator.
  * 💡 Prefer `composeValidateSearch()` to build on parent schemas — ideal for nested routes.
  *
  * @example
@@ -65,22 +69,22 @@ export type SearchHooks<TValidateSearchFn extends ValidateSearchFn> = {
  * }));
  *
  * const {
- *   useCreateUrlSearchParams,
+ *   buildSearchString,
  *   useNavigate,
  *   useSearch,
  *   useSearchParamState,
  *   useSetSearch,
- * } = createSearchHooks(validateSearch);
+ * } = createSearchUtils(validateSearch);
  * ```
  */
-export function createSearchHooks<TValidateSearchFn extends ValidateSearchFn>(
+export function createSearchUtils<TValidateSearchFn extends ValidateSearchFn>(
   validateSearch: TValidateSearchFn,
   opts?: {
     onBeforeNavigate?: OnBeforeNavigateFunction<
       InferValidatedSearch<TValidateSearchFn>
     >;
   },
-): SearchHooks<TValidateSearchFn> {
+): SearchUtils<TValidateSearchFn> {
   type TValidated = InferValidatedSearch<TValidateSearchFn>;
 
   const createNavigateOptions = (
@@ -115,8 +119,8 @@ export function createSearchHooks<TValidateSearchFn extends ValidateSearchFn>(
   }
 
   return {
-    useCreateUrlSearchParams: function () {
-      return useCreateUrlSearchParams({ validateSearch });
+    buildSearchString: function (params) {
+      return _buildSearchString(validateSearch, params);
     },
     useNavigate: function (options?: NavigateOptions<TValidateSearchFn>) {
       return useNavigate(createNavigateOptions(options));

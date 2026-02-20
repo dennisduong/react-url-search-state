@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 
-import { defineValidateSearch, createSearchHooks, SearchStateProvider } from "../src";
+import { defineValidateSearch, createSearchUtils, SearchStateProvider } from "../src";
 import type { Path, SearchStateAdapter, SearchStateAdapterComponent } from '../src';
 
 // ─────────────────────────────
@@ -18,12 +18,12 @@ export const validateSearch = defineValidateSearch((search) => {
 });
 
 export const {
-  useCreateUrlSearchParams,
+  buildSearchString,
   useNavigate,
   useSearch,
   useSearchParamState,
   useSetSearch,
-} = createSearchHooks(validateSearch);
+} = createSearchUtils(validateSearch);
 
 // ─────────────────────────────
 // 🧪 Shared Adapter + Provider

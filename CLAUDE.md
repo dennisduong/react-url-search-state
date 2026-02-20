@@ -41,17 +41,17 @@ Adapters are thin wrappers around router-specific hooks (`useLocation`, `useNavi
 2. **`SearchStore`** (store.ts) — parses URL search string into state, manages subscribers, applies structural sharing via `replaceEqualDeep`
 3. **Hooks** read via `useSyncExternalStore`, write through the adapter's push/replace methods
 
-### Key Hooks (`src/`)
+### Key Hooks/utilities (`src/`)
 
 - `useSearch` — read validated state with optional `select` for slicing
 - `useNavigate` — full navigation (search, pathname, hash) with merge/replace strategies
 - `useSetSearch` — search-only updates convenience wrapper
 - `useSearchParamState` — `useState`-like API for a single param
-- `useCreateUrlSearchParams` — generate `URLSearchParams` for link building
+- `buildSearchString` — pure utility for generating validated URL search strings for link building
 
 ### Other Key Patterns
 
-- **Factory:** `createSearchHooks()` pre-binds all hooks to a specific validator
+- **Factory:** `createSearchUtils()` pre-binds all hooks and utilities to a specific validator
 - **Validation:** `defineValidateSearch()` for type-safe validators; `composeValidateSearch()` for nested route composition; results cached via `ValidatedSearchCache` (WeakMap)
 - **Batching:** Multiple navigate calls in the same frame queue and flush on next `requestAnimationFrame` as a single navigation
 - **Structural sharing:** `replaceEqualDeep()` preserves referential equality for unchanged subtrees

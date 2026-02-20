@@ -1,5 +1,6 @@
 export { SearchStateProvider } from "./context";
-export { createSearchHooks } from "./createSearchHooks";
+export { createSearchUtils } from "./createSearchUtils";
+export { buildSearchString } from "./buildSearchString";
 export {
   composeValidateSearch,
   defineValidateSearch,

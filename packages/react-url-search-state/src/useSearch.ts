@@ -40,7 +40,7 @@ export type UseSearchResult<TValidatedSearchFn, TSelected> =
  *
  * @remarks
  * - Use within a `<SearchStateProvider>`.
- * - Prefer the `createSearchHooks()` factory to avoid passing `validateSearch` manually.
+ * - Prefer the `createSearch()` factory to avoid passing `validateSearch` manually.
  */
 export function useSearch<
   TValidateSearchFn extends ValidateSearchFn,

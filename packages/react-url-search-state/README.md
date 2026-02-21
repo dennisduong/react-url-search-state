@@ -296,7 +296,9 @@ import { ReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-ro
 
 ### `defineValidateSearch(fn)`
 
-Identity helper that preserves TypeScript inference for your validator function. The function receives a `Record<string, unknown>` and must return a typed object.
+Identity helper that preserves TypeScript inference for your validator function. The function receives the raw parsed search object (`Record<string, unknown>`) and must return a typed object. The return type becomes the source of truth for all hooks.
+
+Your validator controls runtime strictness: coerce bad input to defaults for permissive behavior, or throw (e.g., via Zod) for strict runtime enforcement. See [How Validation Works](#how-validation-works).
 
 ```ts
 const validateSearch = defineValidateSearch((search) => ({
@@ -327,7 +329,9 @@ const childValidator = composeValidateSearch(baseValidator, (base, raw) => ({
 
 ### `ValidationError`
 
-Error thrown when a `validateSearch` function fails. Caught internally and re-thrown as a `ValidationError` with the original message.
+Error thrown when a `validateSearch` function throws at runtime. The library catches the original error and re-throws it as a `ValidationError` with the original message.
+
+This only occurs if your validator actually throws — if your validator silently coerces bad input to defaults, no `ValidationError` is thrown. Use React error boundaries to catch these in the component tree.
 
 ---
 
@@ -400,6 +404,32 @@ const hooks = createSearchUtils(validateSearch, {
   },
 });
 ```
+
+---
+
+## How Validation Works
+
+This library follows the same strictness model as [@tanstack/react-router](https://tanstack.com/router): **type-first, runtime-optional**.
+
+**TypeScript catches mistakes at compile time.** Your `defineValidateSearch` return type flows through every hook — `useSearch`, `useNavigate`, `useSetSearch`, `useSearchParamState`, and `buildSearchString`. Invalid values (e.g., passing a `string` where `number` is expected) are flagged by the compiler before your code ever runs.
+
+**Runtime validation is opt-in.** The library only throws `ValidationError` if your validator function throws. If your validator silently coerces bad input to defaults (as in the Quick Start example), no runtime error occurs. This means you choose the strictness level:
+
+```ts
+// Permissive — coerces bad input to defaults, never throws
+const permissive = defineValidateSearch((search) => ({
+  page: Number(search.page) || 1,
+}));
+
+// Strict — throws on invalid input (e.g., using Zod)
+const strict = defineValidateSearch((search) => {
+  return z.object({ page: z.number().int().positive() }).parse(search);
+});
+```
+
+**Parsing is forgiving by default.** URL query strings are decoded with JSON-ish parsing (borrowed from TanStack Router's `qss`). Values like `"true"` become `true`, `"123"` becomes `123`, and JSON-encoded strings are parsed automatically. If JSON parsing fails, the value stays as a string — no error is thrown.
+
+**Unknown params are allowed.** Extra query params that aren't in your validator are parsed but silently filtered out when your validator returns only declared fields. There is no strict mode that rejects unknown params.
 
 ---
 

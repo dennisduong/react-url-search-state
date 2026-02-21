@@ -49,6 +49,17 @@ Adapters are thin wrappers around router-specific hooks (`useLocation`, `useNavi
 - `useSearchParamState` — `useState`-like API for a single param
 - `buildSearchString` — pure utility for generating validated URL search strings for link building
 
+### Strictness Philosophy (Confirmed Alignment with @tanstack/react-router)
+
+This library mirrors @tanstack/react-router's search param strictness model: **type-first, runtime-optional**.
+
+1. **TypeScript enforcement is strong.** `defineValidateSearch` produces `ValidateSearchFn<T>` which flows through all hooks via generics. Invalid usage is caught at compile time.
+2. **Runtime enforcement is optional.** `ValidationError` is only thrown when a provided validator function fails. No validator = no runtime error. Parse errors are silent.
+3. **Default parsing is permissive.** `parseSearch` uses JSON-ish parsing with silent fallback — failed JSON parse leaves the value as a string. Type coercion (`"true"` → `true`, `"123"` → `123`) is lenient.
+4. **Unknown params are allowed.** The parser returns all decoded params; the validator returns only declared fields. No strict-mode rejection exists.
+
+This gives strong editor feedback while keeping runtime behavior configurable — tight TS types for DX, runtime validation only when a validator is provided, and a forgiving default serializer.
+
 ### Other Key Patterns
 
 - **Factory:** `createSearchUtils()` pre-binds all hooks and utilities to a specific validator

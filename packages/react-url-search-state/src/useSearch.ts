@@ -72,7 +72,7 @@ export function useSearch<
     return validated;
   }, [cache, store]);
 
-  return useSyncExternalStore(store.subscribe, getSnapshot) as UseSearchResult<
+  return useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot) as UseSearchResult<
     TValidateSearchFn,
     TSelected
   >;

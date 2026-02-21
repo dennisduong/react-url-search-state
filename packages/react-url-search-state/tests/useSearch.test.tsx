@@ -1,7 +1,10 @@
 import { screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { SearchStateProvider } from "../src";
+import type { SearchStateAdapterComponent } from "../src";
 import { createTestAdapter, renderWithSearchProvider, useSearch } from "./testHelpers";
 
 // Simple test component to surface validated state
@@ -200,7 +203,7 @@ describe("useSearch", () => {
 
   it("throws if selector function throws", () => {
     const adapter = createTestAdapter("?page=1&tab=preview");
-  
+
     const SelectorComponent = () => {
       // This selector throws!
       useSearch({
@@ -210,10 +213,26 @@ describe("useSearch", () => {
       });
       return null;
     };
-  
+
     expect(() => {
       renderWithSearchProvider(<SelectorComponent />, adapter);
     }).toThrowError("Selector function threw an error");
   });
-  
+
+  it("renders correctly during SSR via renderToString", () => {
+    const adapter = createTestAdapter("?page=3&tab=preview");
+    const TestAdapter: SearchStateAdapterComponent = ({ children }) => children(adapter);
+
+    const html = renderToString(
+      <SearchStateProvider adapter={TestAdapter}>
+        <DisplaySearch />
+      </SearchStateProvider>
+    );
+
+    // React SSR inserts comment nodes between text and expression children,
+    // so the output is "Page: <!-- -->3" rather than "Page: 3".
+    expect(html).toContain('data-testid="output"');
+    expect(html).toMatch(/Page:.*3/);
+  });
+
 });

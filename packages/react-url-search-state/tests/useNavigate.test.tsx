@@ -531,24 +531,41 @@ describe("useNavigate", () => {
     const adapter = createTestAdapter("?page=1&tab=preview", "/same", "#hash");
     const pushSpy = vi.spyOn(adapter, "pushState");
     const beforeSpy = vi.fn();
-  
+
     const NavigatorComponent = () => {
       const navigate = useNavigate({
         onBeforeNavigate: beforeSpy,
       });
-  
+
       useEffect(() => {
         navigate({ search: { page: 1 }, pathname: "/same", hash: "#hash" });
       }, []);
-  
+
       return null;
     };
-  
+
     renderWithSearchProvider(<NavigatorComponent />, adapter);
     vi.runAllTimers();
-  
+
     expect(beforeSpy).not.toHaveBeenCalled();
     expect(pushSpy).not.toHaveBeenCalled();
   });
-  
+
+  it("returns a stable function reference across re-renders", () => {
+    const adapter = createTestAdapter();
+    const navigateRefs: ReturnType<typeof useNavigate>[] = [];
+
+    const NavigatorComponent = () => {
+      const navigate = useNavigate();
+      navigateRefs.push(navigate);
+      return null;
+    };
+
+    const { rerender } = renderWithSearchProvider(<NavigatorComponent />, adapter);
+    rerender(<NavigatorComponent />);
+
+    expect(navigateRefs).toHaveLength(2);
+    expect(navigateRefs[0]).toBe(navigateRefs[1]);
+  });
+
 });

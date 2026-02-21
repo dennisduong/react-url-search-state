@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 
 import { useSearchStateContext } from "./context";
 import type { SearchStateContextValue } from "./context";
@@ -135,50 +135,50 @@ export function useNavigate<T extends ValidateSearchFn>(
 
   const context = useSearchStateContext();
 
-  const navigate: NavigateFunction<T> = (
-    { search, ...path },
-    { merge, ...opts } = {},
-  ) => {
-    const { adapterRef } = context;
-    const { current: adapter } = adapterRef;
-    const { current: onBeforeNavigate } = onBeforeNavigateRef;
-    const { current: validateSearch } = validateSearchRef;
+  const navigateRef = useRef<NavigateFunction<T> | null>(null);
+  if (navigateRef.current === null) {
+    navigateRef.current = (({ search, ...path }, { merge, ...opts } = {}) => {
+      const { adapterRef } = context;
+      const { current: adapter } = adapterRef;
+      const { current: onBeforeNavigate } = onBeforeNavigateRef;
+      const { current: validateSearch } = validateSearchRef;
 
-    const { navigationQueue } = context;
+      const { navigationQueue } = context;
 
-    navigationQueue.items.push({
-      updater: (nextParsed) => {
-        const effectiveMerge = merge ?? true;
-        const nextValidated = runValidateSearchOrThrow(
-          validateSearch,
-          nextParsed,
-        ) as InferValidatedSearch<T>;
-        return {
-          // When merge is false, clear all validated fields. This ensures only the next override takes effect.
-          ...(effectiveMerge
-            ? nextValidated
-            : Object.fromEntries(
-                Object.keys(nextValidated).map((k) => [k, undefined]),
-              )),
-          ...(typeof search === "function" ? search(nextValidated) : search),
-        };
-      },
-      options: opts,
-      path,
-    });
-
-    if (navigationQueue.frameRef === null) {
-      navigationQueue.frameRef = requestAnimationFrame(() => {
-        flushNavigate(context, (nextSearch, nextPath, opts) => {
-          onBeforeNavigate?.(nextSearch as InferValidatedSearch<T>, nextPath);
-          (opts.replace ? adapter.replaceState : adapter.pushState)(
-            opts.state,
-            nextPath,
-          );
-        });
+      navigationQueue.items.push({
+        updater: (nextParsed) => {
+          const effectiveMerge = merge ?? true;
+          const nextValidated = runValidateSearchOrThrow(
+            validateSearch,
+            nextParsed,
+          ) as InferValidatedSearch<T>;
+          return {
+            // When merge is false, clear all validated fields. This ensures only the next override takes effect.
+            ...(effectiveMerge
+              ? nextValidated
+              : Object.fromEntries(
+                  Object.keys(nextValidated).map((k) => [k, undefined]),
+                )),
+            ...(typeof search === "function" ? search(nextValidated) : search),
+          };
+        },
+        options: opts,
+        path,
       });
-    }
-  };
 
-  return useCallback(navigate, [context]);
+      if (navigationQueue.frameRef === null) {
+        navigationQueue.frameRef = requestAnimationFrame(() => {
+          flushNavigate(context, (nextSearch, nextPath, opts) => {
+            onBeforeNavigate?.(nextSearch as InferValidatedSearch<T>, nextPath);
+            (opts.replace ? adapter.replaceState : adapter.pushState)(
+              opts.state,
+              nextPath,
+            );
+          });
+        });
+      }
+    }) as NavigateFunction<T>;
+  }
+
+  return navigateRef.current!;
 }

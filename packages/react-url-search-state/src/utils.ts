@@ -64,14 +64,16 @@ function parseSearchWith(parser: (str: string) => any) {
 
     const query: Record<string, unknown> = decode(searchStr);
 
-    // Try to parse any query params that might be json
+    // Try to parse any query params that might be json.
+    // Failures are intentionally silent — unparseable values stay as strings.
+    // This matches @tanstack/react-router's permissive default parser behavior.
     for (const key in query) {
       const value = query[key];
       if (typeof value === "string") {
         try {
           query[key] = parser(value);
         } catch (err) {
-          //
+          // Intentionally silent: value remains as-is (string).
         }
       }
     }
@@ -107,7 +109,7 @@ export function stringifySearchWith(
       try {
         return stringify(val);
       } catch (err) {
-        // silent
+        // Intentionally silent: unstringifiable values pass through as-is.
       }
     } else if (typeof val === "string" && typeof parser === "function") {
       try {
@@ -116,7 +118,7 @@ export function stringifySearchWith(
         parser(val);
         return stringify(val);
       } catch (err) {
-        // silent
+        // Intentionally silent: non-round-trippable strings pass through as-is.
       }
     }
     return val;

@@ -227,6 +227,14 @@ export function isPlainArray(value: unknown): value is Array<unknown> {
   return Array.isArray(value) && value.length === Object.keys(value).length;
 }
 
+export function isEmptyObject(value: unknown): value is Record<string, never> {
+  return typeof value === "object" && value !== null && Object.keys(value).length === 0;
+}
+
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 /**
  * Recursively removes `undefined` values from an object.
  *
@@ -241,17 +249,12 @@ export function cleanSearchObject(input: Record<string, unknown>) {
 
     if (Array.isArray(value)) {
       const cleanedArray = value
-        .map((v) =>
-          typeof v === "object" && v !== null
-            ? cleanSearchObject(v as Record<string, unknown>)
-            : v,
-        )
-        .filter((v) => v !== undefined);
+        .map((v) => isRecord(v) ? cleanSearchObject(v) : v)
+        .filter((v) => v !== undefined && !isEmptyObject(v));
 
       result[key] = cleanedArray;
-    } else if (typeof value === "object" && value !== null) {
-      const cleanedObj = cleanSearchObject(value as Record<string, unknown>);
-      result[key] = cleanedObj;
+    } else if (isRecord(value)) {
+      result[key] = cleanSearchObject(value);
     } else {
       result[key] = value;
     }

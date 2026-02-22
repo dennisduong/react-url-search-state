@@ -3,7 +3,6 @@ import {
   createElement,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -56,10 +55,12 @@ function SearchStateProviderInner(props: {
   const [cache] = useState(() => new ValidatedSearchCache());
   const [navigationQueue] = useState(() => new NavigationQueue());
 
-  const value = useMemo(
-    () => ({ adapterRef, cache, navigationQueue, store }),
-    [adapterRef, cache, navigationQueue, store],
-  );
+  const valueRef = useRef<SearchStateContextValue>({
+    adapterRef,
+    cache,
+    navigationQueue,
+    store,
+  });
 
   useEffect(() => {
     store.setState(location.search);
@@ -71,7 +72,11 @@ function SearchStateProviderInner(props: {
     };
   }, [navigationQueue]);
 
-  return createElement(SearchStateContext.Provider, { value }, children);
+  return createElement(
+    SearchStateContext.Provider,
+    { value: valueRef.current },
+    children,
+  );
 }
 
 type SearchStateProviderProps = {

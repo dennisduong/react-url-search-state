@@ -2,6 +2,51 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { NavigationQueue } from "../src/navigationQueue";
 
+describe("NavigationQueue.schedule()", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("schedules a callback via requestAnimationFrame and stores the frame ID", () => {
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      vi.fn((_cb: FrameRequestCallback) => 99),
+    );
+
+    const queue = new NavigationQueue();
+    const callback = vi.fn();
+    queue.schedule(callback);
+
+    expect(requestAnimationFrame).toHaveBeenCalledWith(callback);
+    expect(queue.frameRef).toBe(99);
+  });
+
+  it("does not reschedule if frameRef is already set", () => {
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      vi.fn((_cb: FrameRequestCallback) => 55),
+    );
+
+    const queue = new NavigationQueue();
+    queue.frameRef = 1; // simulate already-scheduled frame
+    const callback = vi.fn();
+    queue.schedule(callback);
+
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+    expect(queue.frameRef).toBe(1); // unchanged
+  });
+
+  it("does not throw when requestAnimationFrame is not defined (SSR guard)", () => {
+    vi.stubGlobal("requestAnimationFrame", undefined);
+
+    const queue = new NavigationQueue();
+    const callback = vi.fn();
+    expect(() => queue.schedule(callback)).not.toThrow();
+    expect(queue.frameRef).toBeNull(); // nothing scheduled
+    expect(callback).not.toHaveBeenCalled();
+  });
+});
+
 describe("NavigationQueue.destroy()", () => {
   beforeEach(() => {
     vi.stubGlobal(

@@ -622,6 +622,30 @@ describe("useNavigate", () => {
     });
   });
 
+  it("does not throw when requestAnimationFrame is unavailable (SSR guard)", () => {
+    vi.stubGlobal("requestAnimationFrame", undefined);
+
+    const adapter = createTestAdapter("?page=1&tab=preview");
+    const pushSpy = vi.spyOn(adapter, "pushState");
+
+    const NavigatorComponent = () => {
+      const navigate = useNavigate();
+      useEffect(() => {
+        navigate({ search: { page: 2 } });
+      }, []);
+      return null;
+    };
+
+    expect(() =>
+      renderWithSearchProvider(<NavigatorComponent />, adapter),
+    ).not.toThrow();
+
+    // No flush happens since RAF doesn't exist; navigation is silently dropped
+    expect(pushSpy).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
   it("returns a stable function reference across re-renders", () => {
     const adapter = createTestAdapter();
     const navigateRefs: ReturnType<typeof useNavigate>[] = [];

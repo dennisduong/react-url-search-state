@@ -179,17 +179,15 @@ export function useNavigate<T extends ValidateSearchFn>(
         path,
       });
 
-      if (navigationQueue.frameRef === null) {
-        navigationQueue.frameRef = requestAnimationFrame(() => {
-          flushNavigate(context, (nextSearch, nextPath, opts) => {
-            onBeforeNavigate?.(nextSearch as InferValidatedSearch<T>, nextPath);
-            (opts.replace ? adapter.replaceState : adapter.pushState)(
-              opts.state,
-              nextPath,
-            );
-          });
+      navigationQueue.schedule(() => {
+        flushNavigate(context, (nextSearch, nextPath, opts) => {
+          onBeforeNavigate?.(nextSearch as InferValidatedSearch<T>, nextPath);
+          (opts.replace ? adapter.replaceState : adapter.pushState)(
+            opts.state,
+            nextPath,
+          );
         });
-      }
+      });
     }) as NavigateFunction<T>;
   }
 

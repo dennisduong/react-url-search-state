@@ -18,9 +18,18 @@ export class NavigationQueue {
   frameRef: number | null = null;
   items: QueueItem[] = [];
 
+  schedule(callback: FrameRequestCallback): void {
+    if (this.frameRef !== null) return;
+    if (typeof requestAnimationFrame !== "undefined") {
+      this.frameRef = requestAnimationFrame(callback);
+    }
+  }
+
   destroy() {
     if (this.frameRef !== null) {
-      cancelAnimationFrame(this.frameRef);
+      if (typeof cancelAnimationFrame !== "undefined") {
+        cancelAnimationFrame(this.frameRef);
+      }
       this.frameRef = null;
     }
     this.items = [];

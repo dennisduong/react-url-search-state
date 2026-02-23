@@ -38,8 +38,8 @@ export function flushNavigate(
   const nextSearch = stringifySearch(cleaned as AnySearch);
   if (
     nextSearch !== prevPath.search ||
-    (finalPath.pathname && finalPath.pathname !== prevPath.pathname) ||
-    (finalPath.hash && finalPath.hash !== prevPath.hash)
+    (finalPath.pathname != null && finalPath.pathname !== prevPath.pathname) ||
+    (finalPath.hash != null && finalPath.hash !== prevPath.hash)
   ) {
     const nextPath = { ...finalPath, search: nextSearch };
     debug(

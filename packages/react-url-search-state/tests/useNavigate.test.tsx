@@ -551,6 +551,33 @@ describe("useNavigate", () => {
     expect(pushSpy).not.toHaveBeenCalled();
   });
 
+  it("clears hash when navigating with hash: ''", () => {
+    const adapter = createTestAdapter("?page=1&tab=preview", "/stay", "#foo");
+    const spy = vi.spyOn(adapter, "pushState");
+
+    const NavigatorComponent = () => {
+      const navigate = useNavigate();
+
+      useEffect(() => {
+        navigate({
+          search: {},
+          hash: "",
+        });
+      }, []);
+
+      return null;
+    };
+
+    renderWithSearchProvider(<NavigatorComponent />, adapter);
+    vi.runAllTimers();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0]?.[1]).toMatchObject({
+      hash: "",
+      search: "?page=1&tab=preview",
+    });
+  });
+
   it("returns a stable function reference across re-renders", () => {
     const adapter = createTestAdapter();
     const navigateRefs: ReturnType<typeof useNavigate>[] = [];

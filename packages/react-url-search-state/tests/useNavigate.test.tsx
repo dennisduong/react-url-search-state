@@ -181,21 +181,21 @@ describe("useNavigate", () => {
           search: { tab: "details" },
         });
   
-        // Another functional update modifies tab again
+        // Another functional update observes the intermediate tab set above and flips it
         navigate({
-          search: (prev) => ({ ...prev, tab: prev.tab + "-extended" }),
+          search: (prev) => ({ ...prev, tab: prev.tab === "details" ? "preview" : "details" }),
         });
       }, []);
-  
+
       return null;
     };
-  
+
     renderWithSearchProvider(<NavigatorComponent />, adapter);
     vi.runAllTimers(); // Flush batched nav
-  
+
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy.mock.calls[0]?.[1]).toMatchObject({
-      search: "?page=2&tab=details-extended",
+      search: "?page=2&tab=preview",
     });
   });
 
@@ -574,6 +574,50 @@ describe("useNavigate", () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy.mock.calls[0]?.[1]).toMatchObject({
       hash: "",
+      search: "?page=1&tab=preview",
+    });
+  });
+
+  it("re-validates invalid user-provided values in the final merged state", () => {
+    const adapter = createTestAdapter("?page=5&tab=preview");
+    const spy = vi.spyOn(adapter, "pushState");
+
+    const NavigatorComponent = () => {
+      const navigate = useNavigate();
+      useEffect(() => {
+        // page: -99 is invalid per the validator (must be > 0); it should be coerced to 1
+        navigate({ search: { page: -99 } });
+      }, []);
+      return null;
+    };
+
+    renderWithSearchProvider(<NavigatorComponent />, adapter);
+    vi.runAllTimers();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0]?.[1]).toMatchObject({
+      search: "?page=1&tab=preview",
+    });
+  });
+
+  it("re-validates composed state when batched updates result in an invalid value", () => {
+    const adapter = createTestAdapter("?page=5&tab=preview");
+    const spy = vi.spyOn(adapter, "pushState");
+
+    const NavigatorComponent = () => {
+      const navigate = useNavigate();
+      useEffect(() => {
+        navigate({ search: { page: 3 } });
+        navigate({ search: { page: -1 } }); // invalid; should be coerced to 1
+      }, []);
+      return null;
+    };
+
+    renderWithSearchProvider(<NavigatorComponent />, adapter);
+    vi.runAllTimers();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0]?.[1]).toMatchObject({
       search: "?page=1&tab=preview",
     });
   });

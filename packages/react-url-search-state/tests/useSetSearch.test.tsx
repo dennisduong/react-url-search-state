@@ -45,7 +45,7 @@ describe("useSetSearch", () => {
     const SetSearchComponent = () => {
       const setSearch = useSetSearch();
       useEffect(() => {
-        setSearch({ tab: "final" }); // should merge into existing page=2
+        setSearch({ tab: "details" }); // should merge into existing page=2
       }, []);
       return <div data-testid="output">ready</div>;
     };
@@ -55,7 +55,7 @@ describe("useSetSearch", () => {
   
     expect(pushSpy).toHaveBeenCalledTimes(1);
     expect(adapter.location.search).toContain("page=2");
-    expect(adapter.location.search).toContain("tab=final");
+    expect(adapter.location.search).toContain("tab=details");
   });
   
   it("supports functional updates based on current validated state", () => {
@@ -119,7 +119,7 @@ describe("useSetSearch", () => {
   
     expect(pushSpy).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("output").textContent).toBe("1"); // 1 is default
-    expect(adapter.location.search).toContain("page=banana");
+    expect(adapter.location.search).toContain("page=1"); // invalid "banana" coerced to 1
   });
 
   it("clears all other keys when merge is false", () => {

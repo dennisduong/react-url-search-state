@@ -1,4 +1,5 @@
 import type { AnySearch, Path } from "./types";
+import type { ValidateSearchFn } from "./validation";
 
 export type NavigateOptions = {
   merge?: boolean;
@@ -10,6 +11,7 @@ export type QueueItem = {
   updater: (validated: AnySearch) => AnySearch;
   options: NavigateOptions;
   path: Pick<Path, "hash" | "pathname">;
+  validator?: ValidateSearchFn;
 };
 
 export class NavigationQueue {

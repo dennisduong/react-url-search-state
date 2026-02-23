@@ -29,10 +29,22 @@ export function flushNavigate(
   let finalSearch = store.getState();
   let finalPath: Path = {};
   let finalOpts: NavigateOptions = {};
-  for (const { updater, options, path } of pendingQueue) {
+  let lastValidator: ValidateSearchFn | undefined;
+  for (const { updater, options, path, validator } of pendingQueue) {
     finalSearch = updater(finalSearch);
     finalPath = { ...finalPath, ...path };
     finalOpts = { ...finalOpts, ...options };
+    if (validator) lastValidator = validator;
+  }
+  if (lastValidator) {
+    const reValidated = runValidateSearchOrThrow(lastValidator, finalSearch);
+    const overrides: Record<string, unknown> = {};
+    for (const key of Object.keys(reValidated)) {
+      if (finalSearch[key] !== undefined) {
+        overrides[key] = reValidated[key];
+      }
+    }
+    finalSearch = { ...finalSearch, ...overrides };
   }
   const cleaned = cleanSearchObject(finalSearch);
   const nextSearch = stringifySearch(cleaned as AnySearch);
@@ -146,6 +158,7 @@ export function useNavigate<T extends ValidateSearchFn>(
       const { navigationQueue } = context;
 
       navigationQueue.items.push({
+        validator: validateSearch,
         updater: (nextParsed) => {
           const effectiveMerge = merge ?? true;
           const nextValidated = runValidateSearchOrThrow(

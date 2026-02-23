@@ -45,8 +45,10 @@ export class SearchStore {
     if (this.search === nextSearch) return;
     const nextState = replaceEqualDeep(this.state, parseSearch(nextSearch));
     this.search = nextSearch;
-    this.state = nextState;
-    this.emit();
+    if (nextState !== this.state) {
+      this.state = nextState;
+      this.emit();
+    }
   };
 
   /** Returns the current parsed search object. */

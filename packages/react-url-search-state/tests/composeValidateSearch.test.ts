@@ -15,7 +15,7 @@ const baseValidator = defineValidateSearch((search) => ({
 }));
 
 const childValidator = (
-  base: ReturnType<typeof baseValidator>,
+  _base: ReturnType<typeof baseValidator>,
   raw: Record<string, unknown>,
 ) => ({
   tab: (raw.tab as string) ?? "all",

@@ -67,11 +67,11 @@ export const validateSearch = defineValidateSearch((search) => {
 
 ```ts
 // hooks.ts
-import { createSearchHooks } from "react-url-search-state";
+import { createSearchUtils } from "react-url-search-state";
 import { validateSearch } from "./searchParams";
 
 export const { useSearch, useNavigate, useSetSearch, useSearchParamState } =
-  createSearchHooks(validateSearch);
+  createSearchUtils(validateSearch);
 ```
 
 ### 4. Wrap your app with the provider
@@ -119,11 +119,11 @@ function SearchPage() {
 
 ## API Reference
 
-All hooks below are returned by [`createSearchHooks(validateSearch)`](#createsearchhooksvalidatesearch). They are pre-bound to your validator — no need to pass it manually.
+All hooks below are returned by [`createSearchUtils(validateSearch)`](#createsearchutilsvalidatesearch). They are pre-bound to your validator — no need to pass it manually.
 
-### `createSearchHooks(validateSearch)`
+### `createSearchUtils(validateSearch)`
 
-Factory that returns all hooks scoped to a specific validator function.
+Factory that returns all hooks and utilities scoped to a specific validator function.
 
 ```ts
 const {
@@ -131,14 +131,14 @@ const {
   useNavigate,
   useSetSearch,
   useSearchParamState,
-  useCreateUrlSearchParams,
-} = createSearchHooks(validateSearch);
+  buildSearchString,
+} = createSearchUtils(validateSearch);
 ```
 
 You can also pass `onBeforeNavigate` at the factory level to intercept every navigation:
 
 ```ts
-const hooks = createSearchHooks(validateSearch, {
+const hooks = createSearchUtils(validateSearch, {
   onBeforeNavigate: (nextSearch, nextPath) => {
     console.log("Navigating to", nextSearch);
   },
@@ -239,19 +239,22 @@ setPage(5, { replace: true });
 
 ---
 
-### `useCreateUrlSearchParams()`
+### `buildSearchString(params)`
 
-Returns a function for building `URLSearchParams` from the current validated state. Useful for constructing shareable links.
+Pure function for building a validated URL search string. Useful for constructing shareable links without navigating.
 
 ```ts
-const createParams = useCreateUrlSearchParams();
+const { buildSearchString } = createSearchUtils(validateSearch);
 
-// Merge overrides with current state
-const params = createParams({ page: 2 });
-const href = `/results?${params.toString()}`;
+const href = `/results?${buildSearchString({ q: "foo", page: 1, sort: "asc" })}`;
+```
 
-// Replace all params
-const fresh = createParams({ q: "foo", page: 1, sort: "asc" }, { replaceAll: true });
+Also available as a standalone top-level export that takes the validator as the first argument:
+
+```ts
+import { buildSearchString } from "react-url-search-state";
+
+const href = `/results?${buildSearchString(validateSearch, { q: "foo", page: 1, sort: "asc" })}`;
 ```
 
 ---
@@ -377,7 +380,7 @@ function EnsureSearchParams({ children }: { children: React.ReactNode }) {
 **Persist on navigate** — saves params to `localStorage` whenever the URL changes via `onBeforeNavigate`:
 
 ```ts
-const hooks = createSearchHooks(validateSearch, {
+const hooks = createSearchUtils(validateSearch, {
   onBeforeNavigate: (nextSearch) => {
     localStorage.setItem("my-app:filters", JSON.stringify(nextSearch));
   },

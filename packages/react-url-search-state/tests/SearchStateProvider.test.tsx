@@ -255,3 +255,56 @@ describe("SearchStateProvider — nested isolation", () => {
     expect(screen.queryByTestId("inner")).toBeNull();
   });
 });
+
+// ─── Provider unmount cancels pending navigations ─────────────────────────────
+
+describe("SearchStateProvider — unmount cancels pending navigations", () => {
+  it("pending navigation is not dispatched when provider unmounts before the frame fires", () => {
+    const adapter = createTestAdapter("?page=1&tab=all");
+    const spy = vi.spyOn(adapter, "pushState");
+
+    const NavigatorComponent = () => {
+      const navigate = useNavigate();
+      useEffect(() => {
+        navigate({ search: { page: 2 } });
+      }, []);
+      return null;
+    };
+
+    const { unmount } = render(
+      <SearchStateProvider adapter={makeAdapter(adapter)}>
+        <NavigatorComponent />
+      </SearchStateProvider>,
+    );
+
+    // Navigation is queued but the RAF has not fired yet
+    unmount(); // triggers navigationQueue.destroy() → cancelAnimationFrame
+    vi.runAllTimers(); // the cancelled frame is a no-op; flushNavigate never runs
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("navigation fires normally when provider stays mounted until the frame fires", () => {
+    const adapter = createTestAdapter("?page=1&tab=all");
+    const spy = vi.spyOn(adapter, "pushState");
+
+    const NavigatorComponent = () => {
+      const navigate = useNavigate();
+      useEffect(() => {
+        navigate({ search: { page: 2 } });
+      }, []);
+      return null;
+    };
+
+    render(
+      <SearchStateProvider adapter={makeAdapter(adapter)}>
+        <NavigatorComponent />
+      </SearchStateProvider>,
+    );
+
+    vi.runAllTimers(); // provider is still mounted; navigation fires
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0]?.[1]).toMatchObject({ search: "?page=2&tab=all" });
+  });
+});

@@ -94,6 +94,53 @@ describe("useSearchParamState", () => {
     expect(adapter.location.search).toContain("page=5");
   });
   
+  it("uses replaceState when setter is called with replace: true", () => {
+    const adapter = createTestAdapter("?page=1&tab=preview");
+    const pushSpy = vi.spyOn(adapter, "pushState");
+    const replaceSpy = vi.spyOn(adapter, "replaceState");
+
+    const UpdateParam = () => {
+      const [page, setPage] = useSearchParamState("page");
+      useEffect(() => {
+        setPage(10, { replace: true });
+      }, []);
+      return <div data-testid="output">{String(page)}</div>;
+    };
+
+    const { rerender } = renderWithSearchProvider(<UpdateParam />, adapter);
+
+    vi.runAllTimers();
+    rerender(<UpdateParam />);
+
+    expect(screen.getByTestId("output").textContent).toBe("10");
+    expect(adapter.location.search).toContain("page=10");
+    expect(replaceSpy).toHaveBeenCalled();
+    expect(pushSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses pushState by default (replace not set)", () => {
+    const adapter = createTestAdapter("?page=1&tab=preview");
+    const pushSpy = vi.spyOn(adapter, "pushState");
+    const replaceSpy = vi.spyOn(adapter, "replaceState");
+
+    const UpdateParam = () => {
+      const [page, setPage] = useSearchParamState("page");
+      useEffect(() => {
+        setPage(7);
+      }, []);
+      return <div data-testid="output">{String(page)}</div>;
+    };
+
+    const { rerender } = renderWithSearchProvider(<UpdateParam />, adapter);
+
+    vi.runAllTimers();
+    rerender(<UpdateParam />);
+
+    expect(screen.getByTestId("output").textContent).toBe("7");
+    expect(pushSpy).toHaveBeenCalled();
+    expect(replaceSpy).not.toHaveBeenCalled();
+  });
+
   it("clears param when set to undefined", async () => {
     const adapter = createTestAdapter("?page=3&tab=preview");
   

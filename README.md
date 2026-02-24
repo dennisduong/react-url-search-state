@@ -147,6 +147,30 @@ const hooks = createSearchUtils(validateSearch, {
 
 ---
 
+### Without the factory
+
+All hooks are also exported directly and accept `validateSearch` as an explicit option. This is useful when you want to call hooks without pre-binding a validator — for example in generic components, shared utilities, or when composing validators dynamically.
+
+```ts
+import {
+  useSearch,
+  useNavigate,
+  useSetSearch,
+  useSearchParamState,
+} from "react-url-search-state";
+import { validateSearch } from "./searchParams";
+
+// Equivalent to the factory-bound versions, but validateSearch is passed per call
+const search = useSearch({ validateSearch });
+const navigate = useNavigate({ validateSearch });
+const setSearch = useSetSearch({ validateSearch });
+const [page, setPage] = useSearchParamState("page", { validateSearch });
+```
+
+The factory (`createSearchUtils`) remains the recommended approach for most apps — it eliminates the repetition of passing `validateSearch` on every call.
+
+---
+
 ### `useSearch(options?)`
 
 Reads the current validated search state. Re-renders only when the result changes.

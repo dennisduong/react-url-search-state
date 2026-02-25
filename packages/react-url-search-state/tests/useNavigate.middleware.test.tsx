@@ -4,14 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createSearchUtils,
-  defineValidateSearch,
   SearchStateProvider,
 } from "../src";
 import type {
   AnySearch,
-  Path,
   SearchMiddleware,
-  SearchStateAdapter,
   SearchStateAdapterComponent,
 } from "../src";
 import { createTestAdapter, renderWithSearchProvider, validateSearch } from "./testHelpers";

@@ -60,6 +60,14 @@ This library mirrors @tanstack/react-router's search param strictness model: **t
 
 This gives strong editor feedback while keeping runtime behavior configurable — tight TS types for DX, runtime validation only when a validator is provided, and a forgiving default serializer.
 
+### Middleware Pipeline
+
+`SearchMiddleware` functions intercept navigations via an onion model with `next()` chaining. Each middleware can transform `{ search, path, options }` or return `null` to cancel. Middleware composes at three levels: **Provider → Factory → Hook** (outermost to innermost). `onBeforeNavigate` fires after middleware with transformed values and is skipped on cancellation.
+
+Built-in utilities: `retainSearchParams(keys | true)` preserves params across navigations; `stripSearchParams(defaults)` removes params matching defaults.
+
+Core implementation in `src/middleware.ts`. Wired into `useNavigate.ts` (RAF callback), `context.ts` (provider prop), and `createSearchUtils.ts` (factory option).
+
 ### Other Key Patterns
 
 - **Factory:** `createSearchUtils()` pre-binds all hooks and utilities to a specific validator

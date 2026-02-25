@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.0-alpha.4] — 2026-02-25
+
+### Added
+
+- **Middleware pipeline** — New `SearchMiddleware` system for intercepting, transforming, and cancelling navigations before they reach the URL. Uses an onion model with `next()` chaining, inspired by TanStack Router's `search.middlewares`.
+  - Middleware composes at three levels: Provider → Factory → Hook (outermost to innermost)
+  - Return `null` from any middleware to cancel navigation (`onBeforeNavigate` does not fire)
+  - `onBeforeNavigate` receives middleware-transformed values
+- **`retainSearchParams(keys | true)`** — Built-in middleware that preserves specified (or all) search params across navigations
+- **`stripSearchParams(defaults)`** — Built-in middleware that removes params matching their default values
+- **`runMiddleware()`** — Low-level pipeline runner exported for advanced/testing use cases
+- New exports: `SearchMiddleware`, `SearchMiddlewareContext`, `SearchMiddlewareResult` types
+- `SearchStateProvider` now accepts an optional `middleware` prop for app-wide middleware
+- `createSearchUtils` now accepts an optional `middleware` option for factory-level middleware
+- `useNavigate`, `useSetSearch`, `useSearchParamState` now accept an optional `middleware` option for hook-level middleware
+
+### Tests
+
+- `middleware.test.ts` — 19 unit tests for `runMiddleware`, `retainSearchParams`, `stripSearchParams`
+- `useNavigate.middleware.test.tsx` — 9 integration tests for middleware transforms, cancellation, composition order, and `onBeforeNavigate` interaction
+
+---
+
 ## [0.1.0-alpha.3] — 2026-02-24
 
 ### Added

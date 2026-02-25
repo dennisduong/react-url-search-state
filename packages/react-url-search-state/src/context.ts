@@ -7,8 +7,13 @@ import {
   useState,
 } from "react";
 
+import type { SearchMiddleware } from "./middleware";
 import { SearchStore } from "./store";
-import type { SearchStateAdapter, SearchStateAdapterComponent } from "./types";
+import type {
+  AnySearch,
+  SearchStateAdapter,
+  SearchStateAdapterComponent,
+} from "./types";
 import { NavigationQueue } from "./navigationQueue";
 import { ValidatedSearchCache } from "./validation";
 
@@ -25,6 +30,7 @@ type RefObject<T> = React.RefObject<T> & {
 export type SearchStateContextValue = {
   adapterRef: RefObject<SearchStateAdapter>;
   cache: ValidatedSearchCache;
+  middleware?: SearchMiddleware<AnySearch>[];
   navigationQueue: NavigationQueue;
   store: SearchStore;
 };
@@ -44,8 +50,9 @@ export function useSearchStateContext() {
 function SearchStateProviderInner(props: {
   adapter: SearchStateAdapter;
   children?: React.ReactNode;
+  middleware?: SearchMiddleware<AnySearch>[];
 }) {
-  const { adapter, children } = props;
+  const { adapter, children, middleware } = props;
   const { location } = adapter;
 
   const adapterRef = useRef(adapter);
@@ -58,9 +65,11 @@ function SearchStateProviderInner(props: {
   const valueRef = useRef<SearchStateContextValue>({
     adapterRef,
     cache,
+    middleware,
     navigationQueue,
     store,
   });
+  valueRef.current.middleware = middleware;
 
   useEffect(() => {
     store.setState(location.search);
@@ -82,13 +91,18 @@ function SearchStateProviderInner(props: {
 type SearchStateProviderProps = {
   adapter: SearchStateAdapterComponent;
   children?: React.ReactNode;
+  middleware?: SearchMiddleware<AnySearch>[];
 };
 
 export function SearchStateProvider(props: SearchStateProviderProps) {
-  const { adapter: Adapter, children } = props;
+  const { adapter: Adapter, children, middleware } = props;
 
   return createElement(Adapter, {
     children: (adapter: SearchStateAdapter) =>
-      createElement(SearchStateProviderInner, { adapter }, children),
+      createElement(
+        SearchStateProviderInner,
+        { adapter, middleware },
+        children,
+      ),
   });
 }

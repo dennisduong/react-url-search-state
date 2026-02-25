@@ -16,6 +16,7 @@
 - **Router-agnostic** — Adapters for React Router v5/v6/v7, Wouter v3, or bring your own
 - **Structural sharing** — Unchanged subtrees keep referential equality (no wasted rerenders)
 - **Batched navigation** — Multiple updates in one frame are flushed as a single URL change
+- **Middleware pipeline** — Intercept, transform, or cancel navigations with composable middleware
 - **Zero non-React deps** — The core library has no dependencies beyond React
 
 ---
@@ -135,13 +136,14 @@ const {
 } = createSearchUtils(validateSearch);
 ```
 
-You can also pass `onBeforeNavigate` at the factory level to intercept every navigation:
+You can also pass `onBeforeNavigate` and `middleware` at the factory level to intercept every navigation:
 
 ```ts
 const hooks = createSearchUtils(validateSearch, {
   onBeforeNavigate: (nextSearch, nextPath) => {
     console.log("Navigating to", nextSearch);
   },
+  middleware: [stripSearchParams({ page: 1 })],
 });
 ```
 
@@ -221,7 +223,8 @@ navigate({ search: { page: 2 } }, { replace: true });
 
 | Option | Type | Description |
 |---|---|---|
-| `onBeforeNavigate` | `(nextSearch, nextPath) => void` | Called before the navigation commits. |
+| `onBeforeNavigate` | `(nextSearch, nextPath) => void` | Called before the navigation commits (after middleware). |
+| `middleware` | `SearchMiddleware[]` | Hook-level middleware. Runs after provider and factory middleware. See [Middleware](#middleware). |
 
 **Navigate function options:**
 
@@ -301,6 +304,7 @@ import { ReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-ro
 | Prop | Type | Description |
 |---|---|---|
 | `adapter` | `SearchStateAdapterComponent` | A router adapter component. See [Adapters](#adapters). |
+| `middleware` | `SearchMiddleware[]` | Provider-level middleware applied to all navigations. See [Middleware](#middleware). |
 
 ---
 
@@ -368,6 +372,121 @@ const MyAdapter: SearchStateAdapterComponent = ({ children }) => {
   return children({ location, pushState, replaceState });
 };
 ```
+
+---
+
+## Middleware
+
+Middleware lets you intercept, transform, or cancel navigations before they reach the URL. Inspired by TanStack Router's `search.middlewares`, middleware uses an onion model with `next()` chaining.
+
+### How it works
+
+Each middleware receives a context with the current `search`, `path`, `options`, and a `next()` function. Call `next()` to delegate to the next middleware in the chain. Return `null` to cancel the navigation entirely.
+
+```ts
+import type { SearchMiddleware } from "react-url-search-state";
+
+const loggingMiddleware: SearchMiddleware<MySearch> = (ctx) => {
+  console.log("Before:", ctx.search);
+  const result = ctx.next();
+  if (result) console.log("After:", result.search);
+  return result;
+};
+```
+
+### Composition order
+
+Middleware composes at three levels, executed outermost to innermost:
+
+1. **Provider** — applied to all navigations app-wide
+2. **Factory** — applied to all navigations from a `createSearchUtils` instance
+3. **Hook** — applied to a specific `useNavigate` / `useSetSearch` / `useSearchParamState` call
+
+```ts
+// Provider-level (untyped, applies to all navigations)
+<SearchStateProvider adapter={Adapter} middleware={[providerMiddleware]}>
+
+// Factory-level (typed to your validator)
+const { useNavigate } = createSearchUtils(validateSearch, {
+  middleware: [factoryMiddleware],
+});
+
+// Hook-level (typed to your validator)
+const navigate = useNavigate({
+  middleware: [hookMiddleware],
+});
+```
+
+### Cancelling navigation
+
+Return `null` from any middleware to cancel the navigation. The adapter is never called, and `onBeforeNavigate` does not fire.
+
+```ts
+const blockIfEmpty: SearchMiddleware<MySearch> = (ctx) => {
+  if (!ctx.search.q) return null; // cancel if no query
+  return ctx.next();
+};
+```
+
+### Transforming values
+
+Middleware can modify search, path, or options by passing overrides to `next()` or by modifying the result:
+
+```ts
+// Via next() overrides
+const forceReplace: SearchMiddleware<MySearch> = (ctx) => {
+  return ctx.next({ options: { replace: true } });
+};
+
+// Via post-processing
+const clampPage: SearchMiddleware<MySearch> = (ctx) => {
+  const result = ctx.next();
+  if (!result) return null;
+  return {
+    ...result,
+    search: { ...result.search, page: Math.max(1, result.search.page) },
+  };
+};
+```
+
+### Built-in middleware
+
+#### `retainSearchParams(keys | true)`
+
+Preserves specified search params (or all params when passed `true`) across navigations. Useful for keeping global params like `locale` or `theme` that shouldn't be lost during route changes.
+
+```ts
+import { retainSearchParams } from "react-url-search-state";
+
+// Retain specific keys
+const { useNavigate } = createSearchUtils(validateSearch, {
+  middleware: [retainSearchParams(["locale"])],
+});
+
+// Retain all current params
+const { useNavigate } = createSearchUtils(validateSearch, {
+  middleware: [retainSearchParams(true)],
+});
+```
+
+#### `stripSearchParams(defaults)`
+
+Removes search params that match their default values, keeping URLs clean. Params are compared with strict equality (`===`).
+
+```ts
+import { stripSearchParams } from "react-url-search-state";
+
+const { useNavigate } = createSearchUtils(validateSearch, {
+  middleware: [stripSearchParams({ page: 1, sort: "asc" })],
+});
+
+// navigate({ search: { page: 1, sort: "asc", q: "foo" } })
+// URL becomes: ?q=foo (page and sort are stripped because they match defaults)
+```
+
+### Interaction with `onBeforeNavigate`
+
+`onBeforeNavigate` fires **after** the middleware pipeline, receiving the final transformed values. If middleware cancels the navigation, `onBeforeNavigate` does not fire.
 
 ---
 

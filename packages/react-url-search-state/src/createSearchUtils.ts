@@ -1,4 +1,5 @@
 import { buildSearchString as _buildSearchString } from "./buildSearchString";
+import type { SearchMiddleware } from "./middleware";
 import { useNavigate } from "./useNavigate";
 import type {
   NavigateFunction,
@@ -83,6 +84,7 @@ export function createSearchUtils<TValidateSearchFn extends ValidateSearchFn>(
     onBeforeNavigate?: OnBeforeNavigateFunction<
       InferValidatedSearch<TValidateSearchFn>
     >;
+    middleware?: SearchMiddleware<InferValidatedSearch<TValidateSearchFn>>[];
   },
 ): SearchUtils<TValidateSearchFn> {
   type TValidated = InferValidatedSearch<TValidateSearchFn>;
@@ -98,8 +100,14 @@ export function createSearchUtils<TValidateSearchFn extends ValidateSearchFn>(
       options?.onBeforeNavigate?.(nextSearch, nextPath);
     };
 
+    const middleware: SearchMiddleware<TValidated>[] = [
+      ...(opts?.middleware ?? []),
+      ...(options?.middleware ?? []),
+    ];
+
     return {
       ...options,
+      middleware: middleware.length > 0 ? middleware : undefined,
       onBeforeNavigate,
       validateSearch,
     };

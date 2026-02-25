@@ -3,6 +3,8 @@ import { useRef } from "react";
 import { useSearchStateContext } from "./context";
 import type { SearchStateContextValue } from "./context";
 import { debug } from "./debug";
+import { runMiddleware } from "./middleware";
+import type { SearchMiddleware } from "./middleware";
 import type { NavigateOptions, QueueItem } from "./navigationQueue";
 export type { NavigateOptions } from "./navigationQueue";
 import { cleanSearchObject, stringifySearch } from "./utils";
@@ -74,6 +76,7 @@ export type UseNavigateOptions<TValidateSearchFn extends ValidateSearchFn> = {
   onBeforeNavigate?: OnBeforeNavigateFunction<
     InferValidatedSearch<TValidateSearchFn>
   >;
+  middleware?: SearchMiddleware<InferValidatedSearch<TValidateSearchFn>>[];
 };
 
 export type ResolveNextSearchFromFn<
@@ -137,13 +140,16 @@ export type NavigateFunction<T extends ValidateSearchFn> = <
 export function useNavigate<T extends ValidateSearchFn>(
   options: UseNavigateOptions<T>,
 ) {
-  const { validateSearch, onBeforeNavigate } = options;
+  const { validateSearch, onBeforeNavigate, middleware } = options;
 
   const onBeforeNavigateRef = useRef(onBeforeNavigate);
   onBeforeNavigateRef.current = onBeforeNavigate;
 
   const validateSearchRef = useRef(validateSearch);
   validateSearchRef.current = validateSearch;
+
+  const middlewareRef = useRef(middleware);
+  middlewareRef.current = middleware;
 
   const context = useSearchStateContext();
 
@@ -181,11 +187,45 @@ export function useNavigate<T extends ValidateSearchFn>(
 
       navigationQueue.schedule(() => {
         flushNavigate(context, (nextSearch, nextPath, opts) => {
-          onBeforeNavigate?.(nextSearch as InferValidatedSearch<T>, nextPath);
-          (opts.replace ? adapter.replaceState : adapter.pushState)(
-            opts.state,
-            nextPath,
-          );
+          // Compose middleware: context (provider) → hook-level
+          const contextMiddleware = context.middleware ?? [];
+          const hookMiddleware = middlewareRef.current ?? [];
+          const allMiddleware = [
+            ...contextMiddleware,
+            ...hookMiddleware,
+          ] as SearchMiddleware<InferValidatedSearch<T>>[];
+
+          if (allMiddleware.length > 0) {
+            const result = runMiddleware(allMiddleware, {
+              search: nextSearch as InferValidatedSearch<T>,
+              path: nextPath,
+              options: opts,
+            });
+
+            // null = cancelled
+            if (result === null) return;
+
+            const cleaned = cleanSearchObject(result.search);
+            const searchString = stringifySearch(cleaned as AnySearch);
+            const finalPath = { ...result.path, search: searchString };
+
+            onBeforeNavigate?.(
+              cleaned as InferValidatedSearch<T>,
+              finalPath,
+            );
+            (result.options.replace
+              ? adapter.replaceState
+              : adapter.pushState)(result.options.state, finalPath);
+          } else {
+            onBeforeNavigate?.(
+              nextSearch as InferValidatedSearch<T>,
+              nextPath,
+            );
+            (opts.replace ? adapter.replaceState : adapter.pushState)(
+              opts.state,
+              nextPath,
+            );
+          }
         });
       });
     }) as NavigateFunction<T>;

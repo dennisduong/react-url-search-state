@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.0-alpha.5] — 2026-02-27
+
+### Fixed
+
+- `stripSearchParams` now uses `deepEqual` instead of `===` for comparing param values against defaults, correctly handling objects and arrays
+
+### Added
+
+- `stripSearchParams` accepts three input modes:
+  - `true` — strips all search params (returns empty search object)
+  - `Array<keyof TSearch>` — strips listed keys unconditionally
+  - `Partial<TSearch>` (existing) — strips keys whose value deeply equals the provided default
+- `deepEqual` utility exported from the package for use in application code
+
+---
+
 ## [0.1.0-alpha.4] — 2026-02-25
 
 ### Added

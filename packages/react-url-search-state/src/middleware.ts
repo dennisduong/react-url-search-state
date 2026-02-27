@@ -1,5 +1,6 @@
 import type { AnySearch, Path } from "./types";
 import type { NavigateOptions } from "./navigationQueue";
+import { deepEqual } from "./utils";
 
 export type SearchMiddlewareResult<TSearch extends AnySearch = AnySearch> = {
   search: TSearch;
@@ -107,22 +108,35 @@ export function retainSearchParams<TSearch extends AnySearch>(
 }
 
 /**
- * Creates a middleware that strips search params that match their default values.
+ * Creates a middleware that strips search params from the URL.
  *
- * Params whose value equals the corresponding default (via `===`) are removed
- * from the search object after the rest of the pipeline runs.
+ * Accepts three input modes:
+ * - `true` — strips all search params (returns empty search object)
+ * - `Array<keyof TSearch>` — strips listed keys unconditionally
+ * - `Partial<TSearch>` — strips keys whose value deeply equals the provided default
  */
 export function stripSearchParams<TSearch extends AnySearch>(
-  defaults: Partial<TSearch>,
+  input: true | Array<keyof TSearch> | Partial<TSearch>,
 ): SearchMiddleware<TSearch> {
   return (ctx) => {
     const result = ctx.next();
     if (!result) return null;
 
+    if (input === true) {
+      return { ...result, search: {} as TSearch };
+    }
+
     const stripped = { ...result.search };
-    for (const key of Object.keys(defaults) as Array<keyof TSearch>) {
-      if ((stripped as AnySearch)[key as string] === defaults[key]) {
+
+    if (Array.isArray(input)) {
+      for (const key of input) {
         delete (stripped as AnySearch)[key as string];
+      }
+    } else {
+      for (const key of Object.keys(input) as Array<keyof TSearch>) {
+        if (deepEqual((stripped as AnySearch)[key as string], input[key])) {
+          delete (stripped as AnySearch)[key as string];
+        }
       }
     }
 

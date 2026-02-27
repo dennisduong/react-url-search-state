@@ -463,19 +463,29 @@ const { useNavigate } = createSearchUtils(validateSearch, {
 });
 ```
 
-#### `stripSearchParams(defaults)`
+#### `stripSearchParams(input)`
 
-Removes search params that match their default values, keeping URLs clean. Params are compared with strict equality (`===`).
+Removes search params from the URL. Accepts three input modes:
 
 ```ts
 import { stripSearchParams } from "react-url-search-state";
 
+// 1. Strip by default value — removes params that deeply equal the provided defaults
 const { useNavigate } = createSearchUtils(validateSearch, {
   middleware: [stripSearchParams({ page: 1, sort: "asc" })],
 });
-
 // navigate({ search: { page: 1, sort: "asc", q: "foo" } })
 // URL becomes: ?q=foo (page and sort are stripped because they match defaults)
+
+// 2. Strip by key — removes listed keys unconditionally
+const { useNavigate } = createSearchUtils(validateSearch, {
+  middleware: [stripSearchParams(["page", "sort"])],
+});
+
+// 3. Strip all — removes all search params
+const { useNavigate } = createSearchUtils(validateSearch, {
+  middleware: [stripSearchParams(true)],
+});
 ```
 
 ### Interaction with `onBeforeNavigate`

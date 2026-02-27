@@ -9,6 +9,7 @@ import type {
   SearchMiddleware,
   SearchMiddlewareResult,
 } from "../src/middleware";
+import { deepEqual } from "../src/utils";
 
 type TestSearch = { page: number; tab: string; filter?: string };
 
@@ -17,6 +18,59 @@ const initial: SearchMiddlewareResult<TestSearch> = {
   path: { search: "?page=2&tab=preview" },
   options: {},
 };
+
+describe("deepEqual", () => {
+  it("returns true for identical primitives", () => {
+    expect(deepEqual(1, 1)).toBe(true);
+    expect(deepEqual("a", "a")).toBe(true);
+    expect(deepEqual(true, true)).toBe(true);
+    expect(deepEqual(null, null)).toBe(true);
+  });
+
+  it("returns false for different primitives", () => {
+    expect(deepEqual(1, 2)).toBe(false);
+    expect(deepEqual("a", "b")).toBe(false);
+    expect(deepEqual(true, false)).toBe(false);
+    expect(deepEqual(1, "1")).toBe(false);
+  });
+
+  it("compares arrays deeply", () => {
+    expect(deepEqual([1, 2, 3], [1, 2, 3])).toBe(true);
+    expect(deepEqual([1, 2], [1, 2, 3])).toBe(false);
+    expect(deepEqual([1, [2, 3]], [1, [2, 3]])).toBe(true);
+    expect(deepEqual([1, [2, 3]], [1, [2, 4]])).toBe(false);
+  });
+
+  it("compares plain objects deeply", () => {
+    expect(deepEqual({ a: 1, b: 2 }, { a: 1, b: 2 })).toBe(true);
+    expect(deepEqual({ a: 1 }, { a: 2 })).toBe(false);
+    expect(deepEqual({ a: { b: 1 } }, { a: { b: 1 } })).toBe(true);
+    expect(deepEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+  });
+
+  it("ignores undefined values by default", () => {
+    expect(deepEqual({ a: 1 }, { a: 1, b: undefined })).toBe(true);
+    expect(deepEqual({ a: 1, b: undefined }, { a: 1 })).toBe(true);
+  });
+
+  it("respects ignoreUndefined: false", () => {
+    expect(deepEqual({ a: 1 }, { a: 1, b: undefined }, { ignoreUndefined: false })).toBe(false);
+  });
+
+  it("supports partial comparison", () => {
+    expect(deepEqual({ a: 1, b: 2 }, { a: 1 }, { partial: true })).toBe(true);
+    expect(deepEqual({ a: 1, b: 2 }, { a: 3 }, { partial: true })).toBe(false);
+  });
+
+  it("compares nested objects and arrays (JSON round-trip scenario)", () => {
+    const a = { filters: { status: ["all"] }, tags: [1, 2] };
+    const b = { filters: { status: ["all"] }, tags: [1, 2] };
+    expect(deepEqual(a, b)).toBe(true);
+
+    const c = { filters: { status: ["active"] }, tags: [1, 2] };
+    expect(deepEqual(a, c)).toBe(false);
+  });
+});
 
 describe("runMiddleware", () => {
   it("returns initial state when middleware array is empty", () => {
@@ -246,5 +300,89 @@ describe("stripSearchParams", () => {
 
     const result = runMiddleware([mw, cancel], initial);
     expect(result).toBeNull();
+  });
+
+  it("strips non-primitive values via deep equality", () => {
+    type DeepSearch = { filters: { status: string[] }; page: number };
+
+    const mw = stripSearchParams<DeepSearch>({ filters: { status: ["all"] } });
+
+    const state: SearchMiddlewareResult<DeepSearch> = {
+      search: { filters: { status: ["all"] }, page: 1 },
+      path: { search: "?" },
+      options: {},
+    };
+
+    const result = runMiddleware([mw], state);
+    expect("filters" in result!.search).toBe(false);
+    expect(result!.search.page).toBe(1);
+  });
+
+  it("does not strip non-primitive values that differ from defaults", () => {
+    type DeepSearch = { filters: { status: string[] }; page: number };
+
+    const mw = stripSearchParams<DeepSearch>({ filters: { status: ["all"] } });
+
+    const state: SearchMiddlewareResult<DeepSearch> = {
+      search: { filters: { status: ["active", "pending"] }, page: 1 },
+      path: { search: "?" },
+      options: {},
+    };
+
+    const result = runMiddleware([mw], state);
+    expect(result!.search.filters).toEqual({ status: ["active", "pending"] });
+  });
+
+  it("strips array defaults via deep equality", () => {
+    type ArraySearch = { tags: string[]; page: number };
+
+    const mw = stripSearchParams<ArraySearch>({ tags: [] });
+
+    const state: SearchMiddlewareResult<ArraySearch> = {
+      search: { tags: [], page: 3 },
+      path: { search: "?" },
+      options: {},
+    };
+
+    const result = runMiddleware([mw], state);
+    expect("tags" in result!.search).toBe(false);
+    expect(result!.search.page).toBe(3);
+  });
+
+  it("strips all params when passed true", () => {
+    const mw = stripSearchParams<TestSearch>(true);
+
+    const result = runMiddleware([mw], initial);
+    expect(result!.search).toEqual({});
+  });
+
+  it("strips listed keys unconditionally when passed an array", () => {
+    const mw = stripSearchParams<TestSearch>(["page"]);
+
+    const result = runMiddleware([mw], initial);
+    expect("page" in result!.search).toBe(false);
+    expect(result!.search.tab).toBe("preview");
+  });
+
+  it("strips multiple listed keys unconditionally", () => {
+    const mw = stripSearchParams<TestSearch>(["page", "tab"]);
+
+    const result = runMiddleware([mw], initial);
+    expect("page" in result!.search).toBe(false);
+    expect("tab" in result!.search).toBe(false);
+  });
+
+  it("true mode preserves path and options", () => {
+    const mw = stripSearchParams<TestSearch>(true);
+
+    const state: SearchMiddlewareResult<TestSearch> = {
+      ...initial,
+      options: { replace: true },
+    };
+
+    const result = runMiddleware([mw], state);
+    expect(result!.search).toEqual({});
+    expect(result!.options.replace).toBe(true);
+    expect(result!.path).toEqual(initial.path);
   });
 });

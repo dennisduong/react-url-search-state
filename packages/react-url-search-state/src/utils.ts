@@ -229,6 +229,63 @@ export function isPlainArray(value: unknown): value is Array<unknown> {
   return Array.isArray(value) && value.length === Object.keys(value).length;
 }
 
+// Copied from: https://github.com/TanStack/router/blob/main/packages/router-core/src/utils.ts
+export function deepEqual(
+  a: any,
+  b: any,
+  opts?: { partial?: boolean; ignoreUndefined?: boolean },
+): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  if (typeof a !== typeof b) {
+    return false;
+  }
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0, l = a.length; i < l; i++) {
+      if (!deepEqual(a[i], b[i], opts)) return false;
+    }
+    return true;
+  }
+
+  if (isPlainObject(a) && isPlainObject(b)) {
+    const ignoreUndefined = opts?.ignoreUndefined ?? true;
+
+    if (opts?.partial) {
+      for (const k in b) {
+        if (!ignoreUndefined || b[k] !== undefined) {
+          if (!deepEqual(a[k], b[k], opts)) return false;
+        }
+      }
+      return true;
+    }
+
+    let aCount = 0;
+    if (!ignoreUndefined) {
+      aCount = Object.keys(a).length;
+    } else {
+      for (const k in a) {
+        if (a[k] !== undefined) aCount++;
+      }
+    }
+
+    let bCount = 0;
+    for (const k in b) {
+      if (!ignoreUndefined || b[k] !== undefined) {
+        bCount++;
+        if (bCount > aCount || !deepEqual(a[k], b[k], opts)) return false;
+      }
+    }
+
+    return aCount === bCount;
+  }
+
+  return false;
+}
+
 export function isEmptyObject(value: unknown): value is Record<string, never> {
   return typeof value === "object" && value !== null && Object.keys(value).length === 0;
 }

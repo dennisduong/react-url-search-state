@@ -7,7 +7,7 @@ import { runMiddleware } from "./middleware";
 import type { SearchMiddleware } from "./middleware";
 import type { NavigateOptions, QueueItem } from "./navigationQueue";
 export type { NavigateOptions } from "./navigationQueue";
-import { cleanSearchObject, stringifySearch } from "./utils";
+import { cleanSearchObject } from "./utils";
 import type { OmitOptional } from "./utils";
 import type { AnySearch, Path } from "./types";
 import { runValidateSearchOrThrow } from "./validation";
@@ -25,7 +25,7 @@ export function flushNavigate(
   const pendingQueue = queue.splice(0);
   context.navigationQueue.frameRef = null;
   if (!pendingQueue.length) return;
-  const { adapterRef, store } = context;
+  const { adapterRef, stringifySearch, store } = context;
   const { current: adapter } = adapterRef;
   const { location: prevPath } = adapter;
   let finalSearch = store.getState();
@@ -206,7 +206,7 @@ export function useNavigate<T extends ValidateSearchFn>(
             if (result === null) return;
 
             const cleaned = cleanSearchObject(result.search);
-            const searchString = stringifySearch(cleaned as AnySearch);
+            const searchString = context.stringifySearch(cleaned as AnySearch);
             const finalPath = { ...result.path, search: searchString };
 
             onBeforeNavigate?.(

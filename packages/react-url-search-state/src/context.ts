@@ -15,6 +15,10 @@ import type {
   SearchStateAdapterComponent,
 } from "./types";
 import { NavigationQueue } from "./navigationQueue";
+import {
+  parseSearch as defaultParseSearch,
+  stringifySearch as defaultStringifySearch,
+} from "./utils";
 import { ValidatedSearchCache } from "./validation";
 
 /**
@@ -32,6 +36,7 @@ export type SearchStateContextValue = {
   cache: ValidatedSearchCache;
   middleware?: SearchMiddleware<AnySearch>[];
   navigationQueue: NavigationQueue;
+  stringifySearch: (search: Record<string, unknown>) => string;
   store: SearchStore;
 };
 
@@ -51,14 +56,22 @@ function SearchStateProviderInner(props: {
   adapter: SearchStateAdapter;
   children?: React.ReactNode;
   middleware?: SearchMiddleware<AnySearch>[];
+  parseSearch?: (searchStr: string) => Record<string, unknown>;
+  stringifySearch?: (search: Record<string, unknown>) => string;
 }) {
-  const { adapter, children, middleware } = props;
+  const {
+    adapter,
+    children,
+    middleware,
+    parseSearch = defaultParseSearch,
+    stringifySearch = defaultStringifySearch,
+  } = props;
   const { location } = adapter;
 
   const adapterRef = useRef(adapter);
   adapterRef.current = adapter;
 
-  const [store] = useState(() => new SearchStore(location.search));
+  const [store] = useState(() => new SearchStore(location.search, parseSearch));
   const [cache] = useState(() => new ValidatedSearchCache());
   const [navigationQueue] = useState(() => new NavigationQueue());
 
@@ -67,9 +80,11 @@ function SearchStateProviderInner(props: {
     cache,
     middleware,
     navigationQueue,
+    stringifySearch,
     store,
   });
   valueRef.current.middleware = middleware;
+  valueRef.current.stringifySearch = stringifySearch;
 
   useEffect(() => {
     store.setState(location.search);
@@ -92,16 +107,18 @@ type SearchStateProviderProps = {
   adapter: SearchStateAdapterComponent;
   children?: React.ReactNode;
   middleware?: SearchMiddleware<AnySearch>[];
+  parseSearch?: (searchStr: string) => Record<string, unknown>;
+  stringifySearch?: (search: Record<string, unknown>) => string;
 };
 
 export function SearchStateProvider(props: SearchStateProviderProps) {
-  const { adapter: Adapter, children, middleware } = props;
+  const { adapter: Adapter, children, middleware, parseSearch, stringifySearch } = props;
 
   return createElement(Adapter, {
     children: (adapter: SearchStateAdapter) =>
       createElement(
         SearchStateProviderInner,
-        { adapter, middleware },
+        { adapter, middleware, parseSearch, stringifySearch },
         children,
       ),
   });

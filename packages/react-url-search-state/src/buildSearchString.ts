@@ -1,4 +1,4 @@
-import { cleanSearchObject, stringifySearch } from "./utils";
+import { cleanSearchObject, stringifySearch as defaultStringifySearch } from "./utils";
 import { runValidateSearchOrThrow } from "./validation";
 import type { AnySearch } from "./types";
 import type { ValidateSearchFn, ResolveValidatorFn } from "./validation";
@@ -44,7 +44,9 @@ import type { ValidateSearchFn, ResolveValidatorFn } from "./validation";
 export function buildSearchString<T extends ValidateSearchFn>(
   validateSearch: T,
   params: ResolveValidatorFn<T>,
+  options?: { stringifySearch?: (search: Record<string, unknown>) => string },
 ): string {
+  const stringifySearch = options?.stringifySearch ?? defaultStringifySearch;
   const validated = runValidateSearchOrThrow(validateSearch, params as AnySearch);
   const cleaned = cleanSearchObject(validated as Record<string, unknown>);
   return stringifySearch(cleaned as AnySearch);

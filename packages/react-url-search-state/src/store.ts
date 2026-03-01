@@ -1,4 +1,4 @@
-import { parseSearch, replaceEqualDeep } from "./utils";
+import { parseSearch as defaultParseSearch, replaceEqualDeep } from "./utils";
 
 type Listener = () => void;
 
@@ -15,10 +15,15 @@ type Listener = () => void;
  */
 export class SearchStore {
   private listeners: Set<Listener>;
+  private parseSearch: (searchStr: string) => Record<string, unknown>;
   private search: string;
   private state: Record<string, unknown>;
 
-  constructor(search: string) {
+  constructor(
+    search: string,
+    parseSearch: (searchStr: string) => Record<string, unknown> = defaultParseSearch,
+  ) {
+    this.parseSearch = parseSearch;
     this.search = search;
     this.state = parseSearch(search);
     this.listeners = new Set();
@@ -43,7 +48,7 @@ export class SearchStore {
    */
   setState = (nextSearch: string) => {
     if (this.search === nextSearch) return;
-    const nextState = replaceEqualDeep(this.state, parseSearch(nextSearch));
+    const nextState = replaceEqualDeep(this.state, this.parseSearch(nextSearch));
     this.search = nextSearch;
     if (nextState !== this.state) {
       this.state = nextState;

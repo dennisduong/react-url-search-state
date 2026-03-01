@@ -85,6 +85,7 @@ export function createSearchUtils<TValidateSearchFn extends ValidateSearchFn>(
       InferValidatedSearch<TValidateSearchFn>
     >;
     middleware?: SearchMiddleware<InferValidatedSearch<TValidateSearchFn>>[];
+    stringifySearch?: (search: Record<string, unknown>) => string;
   },
 ): SearchUtils<TValidateSearchFn> {
   type TValidated = InferValidatedSearch<TValidateSearchFn>;
@@ -128,7 +129,11 @@ export function createSearchUtils<TValidateSearchFn extends ValidateSearchFn>(
 
   return {
     buildSearchString: function (params) {
-      return _buildSearchString(validateSearch, params);
+      return _buildSearchString(
+        validateSearch,
+        params,
+        opts?.stringifySearch ? { stringifySearch: opts.stringifySearch } : undefined,
+      );
     },
     useNavigate: function (options?: NavigateOptions<TValidateSearchFn>) {
       return useNavigate(createNavigateOptions(options));

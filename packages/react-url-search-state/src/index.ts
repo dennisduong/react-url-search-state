@@ -25,7 +25,7 @@ export { useSetSearch } from "./useSetSearch";
 export type { SetSearchFunction } from "./useSetSearch";
 export { useSearchParamState } from "./useSearchParamState";
 export type { UseSearchParamStateReturn } from "./useSearchParamState";
-export { deepEqual } from "./utils";
+export { deepEqual, parseSearchWith, stringifySearchWith } from "./utils";
 export {
   composeValidateSearch,
   defineValidateSearch,

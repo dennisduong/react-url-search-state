@@ -56,7 +56,7 @@ function decode(str: any, pfx?: string): any {
   }, {});
 }
 
-function parseSearchWith(parser: (str: string) => any) {
+export function parseSearchWith(parser: (str: string) => any) {
   return (searchStr: string): AnySchema => {
     if (searchStr.substring(0, 1) === "?") {
       searchStr = searchStr.substring(1);

@@ -2,7 +2,7 @@ import {
   createContext,
   createElement,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -90,11 +90,21 @@ export function SearchStateProvider(props: SearchStateProviderProps) {
   valueRef.current.middleware = middleware;
   valueRef.current.stringifySearch = stringifySearch;
 
-  useEffect(() => {
-    store.setState(location.search);
-  }, [location.search, store]);
+  const prevSearchRef = useRef(location.search);
+  const needsNotifyRef = useRef(false);
+  if (prevSearchRef.current !== location.search) {
+    prevSearchRef.current = location.search;
+    needsNotifyRef.current = store.updateState(location.search);
+  }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (needsNotifyRef.current) {
+      needsNotifyRef.current = false;
+      store.emit();
+    }
+  });
+
+  useLayoutEffect(() => {
     return () => {
       navigationQueue.destroy();
     };

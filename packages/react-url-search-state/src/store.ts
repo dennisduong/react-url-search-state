@@ -35,36 +35,36 @@ export class SearchStore {
    */
   subscribe = (listener: Listener): (() => void) => {
     this.listeners.add(listener);
-    return () => this.unsubscribe(listener);
-  };
-
-  unsubscribe = (listener: Listener) => {
-    this.listeners.delete(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   };
 
   /**
-   * Updates the internal state if the new search string results
-   * in a meaningful change. Uses `replaceEqualDeep` for structural sharing.
+   * Updates internal state without notifying subscribers.
+   * Returns `true` if the state reference changed.
+   *
+   * Use this during React's render phase to keep the store in sync
+   * with the URL, then call `emit()` in a layout effect.
    */
-  setState = (nextSearch: string) => {
-    if (this.search === nextSearch) return;
+  updateState = (nextSearch: string): boolean => {
+    if (this.search === nextSearch) return false;
     const nextState = replaceEqualDeep(this.state, this.parseSearch(nextSearch));
     this.search = nextSearch;
     if (nextState !== this.state) {
       this.state = nextState;
-      this.emit();
+      return true;
+    }
+    return false;
+  };
+
+  /** Notifies all subscribers of a state change. */
+  emit = () => {
+    for (const listener of this.listeners) {
+      listener();
     }
   };
 
   /** Returns the current parsed search object. */
   getState = () => this.state;
-
-  /** Returns the raw search string (e.g., `?foo=bar`). */
-  toString = () => this.search;
-
-  private emit = () => {
-    for (const listener of this.listeners) {
-      listener();
-    }
-  };
 }

@@ -12,7 +12,7 @@ import { SearchStore } from "./store";
 import type {
   AnySearch,
   SearchStateAdapter,
-  SearchStateAdapterComponent,
+  SearchStateAdapterHook,
 } from "./types";
 import { NavigationQueue } from "./navigationQueue";
 import {
@@ -52,20 +52,24 @@ export function useSearchStateContext() {
   return ctx;
 }
 
-function SearchStateProviderInner(props: {
-  adapter: SearchStateAdapter;
+type SearchStateProviderProps = {
+  adapter: SearchStateAdapterHook;
   children?: React.ReactNode;
   middleware?: SearchMiddleware<AnySearch>[];
   parseSearch?: (searchStr: string) => Record<string, unknown>;
   stringifySearch?: (search: Record<string, unknown>) => string;
-}) {
+};
+
+export function SearchStateProvider(props: SearchStateProviderProps) {
   const {
-    adapter,
+    adapter: useAdapter,
     children,
     middleware,
     parseSearch = defaultParseSearch,
     stringifySearch = defaultStringifySearch,
   } = props;
+
+  const adapter = useAdapter();
   const { location } = adapter;
 
   const adapterRef = useRef(adapter);
@@ -101,25 +105,4 @@ function SearchStateProviderInner(props: {
     { value: valueRef.current },
     children,
   );
-}
-
-type SearchStateProviderProps = {
-  adapter: SearchStateAdapterComponent;
-  children?: React.ReactNode;
-  middleware?: SearchMiddleware<AnySearch>[];
-  parseSearch?: (searchStr: string) => Record<string, unknown>;
-  stringifySearch?: (search: Record<string, unknown>) => string;
-};
-
-export function SearchStateProvider(props: SearchStateProviderProps) {
-  const { adapter: Adapter, children, middleware, parseSearch, stringifySearch } = props;
-
-  return createElement(Adapter, {
-    children: (adapter: SearchStateAdapter) =>
-      createElement(
-        SearchStateProviderInner,
-        { adapter, middleware, parseSearch, stringifySearch },
-        children,
-      ),
-  });
 }

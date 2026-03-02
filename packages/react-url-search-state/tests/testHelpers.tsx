@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 
 import { defineValidateSearch, createSearchUtils, SearchStateProvider } from "../src";
-import type { Path, SearchStateAdapter, SearchStateAdapterComponent } from '../src';
+import type { Path, SearchStateAdapter } from '../src';
 
 // ─────────────────────────────
 // ✅ Schema + Hooks
@@ -65,10 +65,10 @@ export function renderWithSearchProvider(
   ui: React.ReactNode,
   adapter: SearchStateAdapter = createTestAdapter()
 ) {
-  const TestAdapter: SearchStateAdapterComponent = ({ children }) => children(adapter)
+  const useTestAdapter = () => adapter;
 
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <SearchStateProvider adapter={TestAdapter}>{children}</SearchStateProvider>
+    <SearchStateProvider adapter={useTestAdapter}>{children}</SearchStateProvider>
   );
 
   return render(ui, { wrapper: Wrapper });

@@ -1,1 +1,1 @@
-export { ReactRouterDomV5Adapter } from "./ReactRouterDomV5Adapter";
+export { useReactRouterDomV5Adapter } from "./ReactRouterDomV5Adapter";

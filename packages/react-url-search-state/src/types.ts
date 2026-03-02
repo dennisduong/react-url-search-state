@@ -8,6 +8,9 @@ export type SearchStateAdapter = {
   replaceState: (state: any, path: Path) => void;
 };
 
+export type SearchStateAdapterHook = () => SearchStateAdapter;
+
+/** @deprecated Use `SearchStateAdapterHook` instead. Will be removed in 1.0. */
 export type SearchStateAdapterComponent = React.FC<{
   children: (adapter: SearchStateAdapter) => React.ReactElement;
 }>;

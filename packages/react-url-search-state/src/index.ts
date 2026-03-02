@@ -36,4 +36,5 @@ export type {
   Path,
   SearchStateAdapter,
   SearchStateAdapterComponent,
+  SearchStateAdapterHook,
 } from "./types";

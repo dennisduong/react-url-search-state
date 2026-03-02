@@ -2,14 +2,14 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import { SearchStateProvider } from "react-url-search-state";
-import { ReactRouterDomV5Adapter } from "react-url-search-state-adapter-react-router-dom-v5";
+import { useReactRouterDomV5Adapter } from "react-url-search-state-adapter-react-router-dom-v5";
 
 import App from "./App";
 import "./main.css";
 
 function Root() {
   return (
-    <SearchStateProvider adapter={ReactRouterDomV5Adapter}>
+    <SearchStateProvider adapter={useReactRouterDomV5Adapter}>
       <Switch>
         <Route path="/">
           <App />

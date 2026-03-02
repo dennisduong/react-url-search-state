@@ -1,12 +1,10 @@
 import { useCallback, useMemo } from "react";
-import type { SearchStateAdapterComponent } from "react-url-search-state";
+import type { SearchStateAdapter } from "react-url-search-state";
 import { navigate, useLocationProperty } from "wouter/use-browser-location";
 
 import { toPath } from "./utils";
 
-export const WouterV3Adapter: SearchStateAdapterComponent = (props) => {
-  const { children } = props;
-
+export function useWouterV3Adapter(): SearchStateAdapter {
   const currentPath = useLocationProperty(
     useCallback(
       () =>
@@ -28,18 +26,21 @@ export const WouterV3Adapter: SearchStateAdapterComponent = (props) => {
     };
   }, [currentPath]);
 
-  return children({
-    location,
-    pushState: (state, next) => {
-      navigate(toPath(next), {
-        state,
-      });
-    },
-    replaceState: (state, next) => {
-      navigate(toPath(next), {
-        replace: true,
-        state: state,
-      });
-    },
-  });
-};
+  return useMemo(
+    () => ({
+      location,
+      pushState: (state: any, next: any) => {
+        navigate(toPath(next), {
+          state,
+        });
+      },
+      replaceState: (state: any, next: any) => {
+        navigate(toPath(next), {
+          replace: true,
+          state: state,
+        });
+      },
+    }),
+    [location],
+  );
+}

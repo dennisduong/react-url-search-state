@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { SearchStateProvider } from "../src";
-import type { SearchStateAdapterComponent } from "../src";
+import type { SearchStateAdapterHook } from "../src";
 import { createTestAdapter, renderWithSearchProvider, useSearch } from "./testHelpers";
 
 // Simple test component to surface validated state
@@ -221,10 +221,10 @@ describe("useSearch", () => {
 
   it("renders correctly during SSR via renderToString", () => {
     const adapter = createTestAdapter("?page=3&tab=preview");
-    const TestAdapter: SearchStateAdapterComponent = ({ children }) => children(adapter);
+    const useTestAdapter: SearchStateAdapterHook = () => adapter;
 
     const html = renderToString(
-      <SearchStateProvider adapter={TestAdapter}>
+      <SearchStateProvider adapter={useTestAdapter}>
         <DisplaySearch />
       </SearchStateProvider>
     );

@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { defineValidateSearch, createSearchUtils, SearchStateProvider } from "../src";
-import type { SearchStateAdapterComponent } from "../src";
+import type { SearchStateAdapterHook } from "../src";
 import { createTestAdapter } from "./testHelpers";
 
 beforeEach(() => {
@@ -26,8 +26,8 @@ const { useSearch, useNavigate } = createSearchUtils(validateSearch);
 
 function makeAdapter(
   adapter: ReturnType<typeof createTestAdapter>,
-): SearchStateAdapterComponent {
-  return ({ children }) => children(adapter);
+): SearchStateAdapterHook {
+  return () => adapter;
 }
 
 // ─── Sibling providers ────────────────────────────────────────────────────────

@@ -12,7 +12,6 @@ import {
 import type {
   Path,
   SearchStateAdapter,
-  SearchStateAdapterComponent,
 } from "../src";
 
 // ─────────────────────────────
@@ -139,11 +138,10 @@ describe("SearchStateProvider with custom parseSearch/stringifySearch", () => {
     }
 
     const adapter = createTestAdapter("?page=3&tab=details");
-    const TestAdapter: SearchStateAdapterComponent = ({ children }) =>
-      children(adapter);
+    const useTestAdapter = () => adapter;
 
     render(
-      <SearchStateProvider adapter={TestAdapter} parseSearch={customParse}>
+      <SearchStateProvider adapter={useTestAdapter} parseSearch={customParse}>
         <Reader />
       </SearchStateProvider>,
     );
@@ -181,12 +179,11 @@ describe("SearchStateProvider with custom parseSearch/stringifySearch", () => {
     }
 
     const adapter = createTestAdapter("?page=1&tab=details");
-    const TestAdapter: SearchStateAdapterComponent = ({ children }) =>
-      children(adapter);
+    const useTestAdapter = () => adapter;
 
     render(
       <SearchStateProvider
-        adapter={TestAdapter}
+        adapter={useTestAdapter}
         stringifySearch={customStringify}
       >
         <Reader />
@@ -214,11 +211,10 @@ describe("SearchStateProvider with custom parseSearch/stringifySearch", () => {
     }
 
     const adapter = createTestAdapter("?page=2&tab=preview");
-    const TestAdapter: SearchStateAdapterComponent = ({ children }) =>
-      children(adapter);
+    const useTestAdapter = () => adapter;
 
     render(
-      <SearchStateProvider adapter={TestAdapter}>
+      <SearchStateProvider adapter={useTestAdapter}>
         <Reader />
       </SearchStateProvider>,
     );

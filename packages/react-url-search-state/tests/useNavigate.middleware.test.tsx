@@ -9,7 +9,6 @@ import {
 import type {
   AnySearch,
   SearchMiddleware,
-  SearchStateAdapterComponent,
 } from "../src";
 import { createTestAdapter, renderWithSearchProvider, validateSearch } from "./testHelpers";
 
@@ -214,8 +213,7 @@ describe("useNavigate middleware", () => {
     });
 
     const adapter = createTestAdapter("?page=1&tab=preview");
-    const TestAdapter: SearchStateAdapterComponent = ({ children }) =>
-      children(adapter);
+    const useTestAdapter = () => adapter;
 
     const Component = () => {
       const navigate = useNavigate({ middleware: [hookMw] });
@@ -228,7 +226,7 @@ describe("useNavigate middleware", () => {
     render(
       createElement(
         SearchStateProvider,
-        { adapter: TestAdapter, middleware: [providerMw] },
+        { adapter: useTestAdapter, middleware: [providerMw] },
         createElement(Component),
       ),
     );

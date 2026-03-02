@@ -153,15 +153,19 @@ export function useNavigate<T extends ValidateSearchFn>(
 
   const context = useSearchStateContext();
 
+  const contextRef = useRef(context);
+  contextRef.current = context;
+
   const navigateRef = useRef<NavigateFunction<T> | null>(null);
   if (navigateRef.current === null) {
     navigateRef.current = (({ search, ...path }, { merge, ...opts } = {}) => {
-      const { adapterRef } = context;
+      const ctx = contextRef.current;
+      const { adapterRef } = ctx;
       const { current: adapter } = adapterRef;
       const { current: onBeforeNavigate } = onBeforeNavigateRef;
       const { current: validateSearch } = validateSearchRef;
 
-      const { navigationQueue } = context;
+      const { navigationQueue } = ctx;
 
       navigationQueue.items.push({
         validator: validateSearch,
@@ -186,9 +190,9 @@ export function useNavigate<T extends ValidateSearchFn>(
       });
 
       navigationQueue.schedule(() => {
-        flushNavigate(context, (nextSearch, nextPath, opts) => {
+        flushNavigate(ctx, (nextSearch, nextPath, opts) => {
           // Compose middleware: context (provider) → hook-level
-          const contextMiddleware = context.middleware ?? [];
+          const contextMiddleware = ctx.middleware ?? [];
           const hookMiddleware = middlewareRef.current ?? [];
           const allMiddleware = [
             ...contextMiddleware,
@@ -206,7 +210,7 @@ export function useNavigate<T extends ValidateSearchFn>(
             if (result === null) return;
 
             const cleaned = cleanSearchObject(result.search);
-            const searchString = context.stringifySearch(cleaned as AnySearch);
+            const searchString = ctx.stringifySearch(cleaned as AnySearch);
             const finalPath = { ...result.path, search: searchString };
 
             onBeforeNavigate?.(

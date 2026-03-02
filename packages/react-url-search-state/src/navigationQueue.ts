@@ -8,7 +8,8 @@ export type NavigateOptions = {
 };
 
 export type QueueItem = {
-  updater: (validated: AnySearch) => AnySearch;
+  search: AnySearch | ((prev: AnySearch) => AnySearch);
+  merge: boolean;
   options: NavigateOptions;
   path: Pick<Path, "hash" | "pathname">;
   validator?: ValidateSearchFn;

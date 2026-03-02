@@ -32,11 +32,27 @@ export function flushNavigate(
   let finalPath: Path = {};
   let finalOpts: NavigateOptions = {};
   let lastValidator: ValidateSearchFn | undefined;
-  for (const { updater, options, path, validator } of pendingQueue) {
-    finalSearch = updater(finalSearch);
+  for (const { search, merge, options, path, validator } of pendingQueue) {
+    if (validator) {
+      lastValidator = validator;
+      const validated = runValidateSearchOrThrow(validator, finalSearch);
+      finalSearch = merge
+        ? { ...finalSearch, ...validated }
+        : Object.fromEntries(
+            Object.keys(validated).map((k) => [k, undefined]),
+          );
+      const userSearch =
+        typeof search === "function" ? search(validated) : search;
+      finalSearch = { ...finalSearch, ...userSearch };
+    } else {
+      const userSearch =
+        typeof search === "function" ? search(finalSearch) : search;
+      finalSearch = merge
+        ? { ...finalSearch, ...userSearch }
+        : userSearch;
+    }
     finalPath = { ...finalPath, ...path };
     finalOpts = { ...finalOpts, ...options };
-    if (validator) lastValidator = validator;
   }
   if (lastValidator) {
     const reValidated = runValidateSearchOrThrow(lastValidator, finalSearch);
@@ -169,22 +185,8 @@ export function useNavigate<T extends ValidateSearchFn>(
 
       navigationQueue.items.push({
         validator: validateSearch,
-        updater: (nextParsed) => {
-          const effectiveMerge = merge ?? true;
-          const nextValidated = runValidateSearchOrThrow(
-            validateSearch,
-            nextParsed,
-          ) as InferValidatedSearch<T>;
-          return {
-            // When merge is false, clear all validated fields. This ensures only the next override takes effect.
-            ...(effectiveMerge
-              ? nextValidated
-              : Object.fromEntries(
-                  Object.keys(nextValidated).map((k) => [k, undefined]),
-                )),
-            ...(typeof search === "function" ? search(nextValidated) : search),
-          };
-        },
+        search: search as AnySearch | ((prev: AnySearch) => AnySearch),
+        merge: merge ?? true,
         options: opts,
         path,
       });

@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import type { SearchStateContextValue } from "../src/context";
 import { SearchStore } from "../src/store";
-import type { AnySearch } from "../src/types";
 import { NavigationQueue } from "../src/navigationQueue";
 import { flushNavigate } from "../src/useNavigate";
 import { stringifySearch } from "../src/utils";
@@ -38,12 +37,14 @@ describe("flushNavigate (functional queue)", () => {
   it("batches multiple updaters and calls pushState by default", () => {
     const queue = [
       {
-        updater: () => ({ x: 1 }),
+        search: { x: 1 },
+        merge: true,
         options: {},
         path: {},
       },
       {
-        updater: (prev: AnySearch) => ({ ...prev, y: 2 }),
+        search: { y: 2 },
+        merge: true,
         options: {},
         path: { pathname: "/new" },
       },
@@ -64,7 +65,7 @@ describe("flushNavigate (functional queue)", () => {
       {},
       {
         pathname: "/new",
-        search: "?x=1&y=2",
+        search: "?init=1&x=1&y=2",
       },
     );
   });
@@ -72,7 +73,8 @@ describe("flushNavigate (functional queue)", () => {
   it("calls replaceState if last options include replace: true", () => {
     const queue = [
       {
-        updater: () => ({ a: 1 }),
+        search: { a: 1 },
+        merge: true,
         options: { replace: true },
         path: { hash: "#z" },
       },
@@ -92,7 +94,7 @@ describe("flushNavigate (functional queue)", () => {
     expect(replaceSpy).toHaveBeenCalledWith(
       {},
       {
-        search: "?a=1",
+        search: "?init=1&a=1",
         hash: "#z",
       },
     );
@@ -101,7 +103,8 @@ describe("flushNavigate (functional queue)", () => {
   it("does not call callback if nothing changed", () => {
     const queue = [
       {
-        updater: () => ({ init: "1" }), // same as initial
+        search: { init: "1" }, // same as initial
+        merge: true,
         options: {},
         path: {},
       },

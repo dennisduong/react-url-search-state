@@ -69,7 +69,8 @@ describe("NavigationQueue.destroy()", () => {
     // Simulate a pending frame by manually setting frameRef and items
     queue.frameRef = requestAnimationFrame(() => {});
     queue.items.push({
-      updater: (s) => s,
+      search: {},
+      merge: true,
       options: {},
       path: {},
     });
@@ -88,8 +89,8 @@ describe("NavigationQueue.destroy()", () => {
     const queue = new NavigationQueue();
 
     queue.frameRef = requestAnimationFrame(() => {});
-    queue.items.push({ updater: (s) => s, options: {}, path: {} });
-    queue.items.push({ updater: (s) => s, options: { replace: true }, path: { pathname: "/foo" } });
+    queue.items.push({ search: {}, merge: true, options: {}, path: {} });
+    queue.items.push({ search: {}, merge: true, options: { replace: true }, path: { pathname: "/foo" } });
 
     queue.destroy();
 
@@ -114,7 +115,7 @@ describe("NavigationQueue.destroy()", () => {
     const queue = new NavigationQueue();
 
     queue.frameRef = requestAnimationFrame(() => {});
-    queue.items.push({ updater: (s) => s, options: {}, path: {} });
+    queue.items.push({ search: {}, merge: true, options: {}, path: {} });
 
     queue.destroy();
     expect(() => queue.destroy()).not.toThrow();

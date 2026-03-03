@@ -1,4 +1,4 @@
-import { cleanSearchObject, stringifySearch as defaultStringifySearch } from "./utils";
+import { stringifySearch as defaultStringifySearch } from "./utils";
 import { runValidateSearchOrThrow } from "./validation";
 import type { AnySearch } from "./types";
 import type { ValidateSearchFn, ResolveValidatorFn } from "./validation";
@@ -10,7 +10,6 @@ import type { ValidateSearchFn, ResolveValidatorFn } from "./validation";
  * link building, redirects, or any URL construction outside of navigation.
  *
  * - Validates `params` through the provided `validateSearch` function
- * - Removes `undefined` values recursively via `cleanSearchObject`
  * - Returns a `?`-prefixed search string (e.g. `"?page=2&q=foo"`)
  *
  * ❗ Throws `ValidationError` if `params` fails validation.
@@ -48,6 +47,5 @@ export function buildSearchString<T extends ValidateSearchFn>(
 ): string {
   const stringifySearch = options?.stringifySearch ?? defaultStringifySearch;
   const validated = runValidateSearchOrThrow(validateSearch, params as AnySearch);
-  const cleaned = cleanSearchObject(validated as Record<string, unknown>);
-  return stringifySearch(cleaned as AnySearch);
+  return stringifySearch(validated as AnySearch);
 }

@@ -7,7 +7,6 @@ import { runMiddleware } from "./middleware";
 import type { SearchMiddleware } from "./middleware";
 import type { NavigateOptions, QueueItem } from "./navigationQueue";
 export type { NavigateOptions } from "./navigationQueue";
-import { cleanSearchObject } from "./utils";
 import type { OmitOptional } from "./utils";
 import type { AnySearch, Path } from "./types";
 import { runValidateSearchOrThrow } from "./validation";
@@ -64,8 +63,7 @@ export function flushNavigate(
     }
     finalSearch = { ...finalSearch, ...overrides };
   }
-  const cleaned = cleanSearchObject(finalSearch);
-  const nextSearch = stringifySearch(cleaned as AnySearch);
+  const nextSearch = stringifySearch(finalSearch as AnySearch);
   if (
     nextSearch !== prevPath.search ||
     (finalPath.pathname != null && finalPath.pathname !== prevPath.pathname) ||
@@ -73,12 +71,12 @@ export function flushNavigate(
   ) {
     const nextPath = { ...finalPath, search: nextSearch };
     debug(
-      "[react-url-search-state:flushNavigate] cleaned: %s; nextPath: %s; finalOptions: %s",
-      cleaned,
+      "[react-url-search-state:flushNavigate] finalSearch: %s; nextPath: %s; finalOptions: %s",
+      finalSearch,
       nextPath,
       finalOpts,
     );
-    callback(cleaned, nextPath, finalOpts);
+    callback(finalSearch as AnySearch, nextPath, finalOpts);
   }
 }
 
@@ -211,12 +209,11 @@ export function useNavigate<T extends ValidateSearchFn>(
             // null = cancelled
             if (result === null) return;
 
-            const cleaned = cleanSearchObject(result.search);
-            const searchString = ctx.stringifySearch(cleaned as AnySearch);
+            const searchString = ctx.stringifySearch(result.search as AnySearch);
             const finalPath = { ...result.path, search: searchString };
 
             onBeforeNavigate?.(
-              cleaned as InferValidatedSearch<T>,
+              result.search as InferValidatedSearch<T>,
               finalPath,
             );
             (result.options.replace

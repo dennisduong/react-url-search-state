@@ -2,7 +2,7 @@
   "name": "react-url-search-state",
   "description": "Typed URL search param state for React, with JSON parsing and no router lock-in.",
   "private": false,
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0-alpha.6",
   "type": "module",
   "main": "./dist/cjs/index.cjs",
   "module": "./dist/esm/index.js",
@@ -23,6 +23,7 @@
   "scripts": {
     "build": "tsc -b && vite build",
     "clean": "rm -rf dist",
+    "prepack": "npm run build",
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",

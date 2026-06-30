@@ -17,11 +17,11 @@ Wrap your app with `SearchStateProvider` inside a route tree:
 ```tsx
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { SearchStateProvider } from "react-url-search-state";
-import { ReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-router-dom-v6";
+import { useReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-router-dom-v6";
 
 function Root() {
   return (
-    <SearchStateProvider adapter={ReactRouterDomV6Adapter}>
+    <SearchStateProvider adapter={useReactRouterDomV6Adapter}>
       <Outlet />
     </SearchStateProvider>
   );

@@ -82,11 +82,11 @@ The `SearchStateProvider` connects the core library to your router via an adapte
 ```tsx
 // main.tsx
 import { SearchStateProvider } from "react-url-search-state";
-import { ReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-router-dom-v6";
+import { useReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-router-dom-v6";
 
 function Root() {
   return (
-    <SearchStateProvider adapter={ReactRouterDomV6Adapter}>
+    <SearchStateProvider adapter={useReactRouterDomV6Adapter}>
       <App />
     </SearchStateProvider>
   );
@@ -282,9 +282,9 @@ Context provider that connects the core library to your router.
 
 ```tsx
 import { SearchStateProvider } from "react-url-search-state";
-import { ReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-router-dom-v6";
+import { useReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-router-dom-v6";
 
-<SearchStateProvider adapter={ReactRouterDomV6Adapter}>
+<SearchStateProvider adapter={useReactRouterDomV6Adapter}>
   {children}
 </SearchStateProvider>
 ```
@@ -293,8 +293,10 @@ import { ReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-ro
 
 | Prop | Type | Description |
 |---|---|---|
-| `adapter` | `SearchStateAdapterComponent` | A router adapter component. See [Adapters](#adapters). |
+| `adapter` | `SearchStateAdapterHook` | A router adapter hook (`() => SearchStateAdapter`). See [Adapters](#adapters). |
 | `middleware` | `SearchMiddleware[]` | Provider-level middleware applied to all navigations. See [Middleware](#middleware). |
+| `parseSearch` | `(searchStr: string) => Record<string, unknown>` | Optional. Override the default search-string parser. |
+| `stringifySearch` | `(search: Record<string, unknown>) => string` | Optional. Override the default search serializer. |
 
 ---
 
@@ -341,7 +343,7 @@ This only occurs if your validator actually throws — if your validator silentl
 
 ## Adapters
 
-Adapters are thin components that bridge router-specific APIs (`useLocation`, `useNavigate`) into a uniform `SearchStateAdapter` interface. The core library never imports any router directly.
+Adapters are thin hooks that bridge router-specific APIs (`useLocation`, `useNavigate`) into a uniform `SearchStateAdapter` interface. The core library never imports any router directly.
 
 | Adapter | Package | Install |
 |---|---|---|
@@ -352,18 +354,18 @@ Adapters are thin components that bridge router-specific APIs (`useLocation`, `u
 
 ### Writing a custom adapter
 
-An adapter is a React component that calls `children` with a `SearchStateAdapter` object:
+An adapter is a React hook that returns a `SearchStateAdapter` object:
 
 ```tsx
-import type { SearchStateAdapterComponent } from "react-url-search-state";
+import type { SearchStateAdapterHook } from "react-url-search-state";
 
-const MyAdapter: SearchStateAdapterComponent = ({ children }) => {
+const useMyAdapter: SearchStateAdapterHook = () => {
   // Hook into your router's location and navigation APIs
   const location = { pathname: "/", search: "", hash: "" };
   const pushState = (state: any, path) => { /* ... */ };
   const replaceState = (state: any, path) => { /* ... */ };
 
-  return children({ location, pushState, replaceState });
+  return { location, pushState, replaceState };
 };
 ```
 
@@ -398,7 +400,7 @@ Middleware composes at three levels, executed outermost to innermost:
 
 ```ts
 // Provider-level (untyped, applies to all navigations)
-<SearchStateProvider adapter={Adapter} middleware={[providerMiddleware]}>
+<SearchStateProvider adapter={useAdapter} middleware={[providerMiddleware]}>
 
 // Factory-level (typed to your validator)
 const { useNavigate } = createSearchUtils(validateSearch, {

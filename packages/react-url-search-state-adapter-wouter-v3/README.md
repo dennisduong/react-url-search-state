@@ -16,11 +16,11 @@ Wrap your app with `SearchStateProvider`:
 
 ```tsx
 import { SearchStateProvider } from "react-url-search-state";
-import { WouterV3Adapter } from "react-url-search-state-adapter-wouter-v3";
+import { useWouterV3Adapter } from "react-url-search-state-adapter-wouter-v3";
 
 function App() {
   return (
-    <SearchStateProvider adapter={WouterV3Adapter}>
+    <SearchStateProvider adapter={useWouterV3Adapter}>
       <Home />
     </SearchStateProvider>
   );

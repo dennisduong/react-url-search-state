@@ -17,12 +17,12 @@ Wrap your app with `SearchStateProvider` inside a `<Router>`:
 ```tsx
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 import { SearchStateProvider } from "react-url-search-state";
-import { ReactRouterDomV5Adapter } from "react-url-search-state-adapter-react-router-dom-v5";
+import { useReactRouterDomV5Adapter } from "react-url-search-state-adapter-react-router-dom-v5";
 
 function App() {
   return (
     <BrowserRouter>
-      <SearchStateProvider adapter={ReactRouterDomV5Adapter}>
+      <SearchStateProvider adapter={useReactRouterDomV5Adapter}>
         <Switch>
           <Route path="/" component={Home} />
         </Switch>

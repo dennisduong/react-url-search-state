@@ -6,6 +6,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.0-alpha.6] — 2026-06-25
+
+### Breaking Changes
+
+- **Adapter interface changed from a render-prop component to a hook.** The `SearchStateProvider` `adapter` prop now expects a hook (`() => SearchStateAdapter`) instead of a render-prop component. This removes an intermediate adapter component render on every URL change.
+  - The four official adapters renamed their exports accordingly:
+    - `ReactRouterDomV5Adapter` → `useReactRouterDomV5Adapter`
+    - `ReactRouterDomV6Adapter` → `useReactRouterDomV6Adapter`
+    - `ReactRouterDomV7Adapter` → `useReactRouterDomV7Adapter`
+    - `WouterV3Adapter` → `useWouterV3Adapter`
+  - `SearchStateAdapterComponent` is now **deprecated** (still exported, removed in 1.0). Use the new `SearchStateAdapterHook` type.
+
+  **Migration:**
+
+  ```diff
+  - import { ReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-router-dom-v6";
+  + import { useReactRouterDomV6Adapter } from "react-url-search-state-adapter-react-router-dom-v6";
+
+  - <SearchStateProvider adapter={ReactRouterDomV6Adapter}>
+  + <SearchStateProvider adapter={useReactRouterDomV6Adapter}>
+  ```
+
+  If you wrote a custom adapter, convert the component to a hook that returns the `SearchStateAdapter` object directly (call `useLocation`/`useNavigate` inside and return `{ location, pushState, replaceState }`) instead of passing it through a `children` render prop.
+
+### Added
+
+- **Custom search param serialization.** `SearchStateProvider` now accepts optional `parseSearch` and `stringifySearch` props to override the default JSON-ish (de)serialization. New `parseSearchWith` / `stringifySearchWith` helpers are exported for building custom (de)serializers.
+- New `SearchStateAdapterHook` type export (`() => SearchStateAdapter`).
+
+### Fixed
+
+- **Stale search value during route transitions.** The provider now syncs the store with the URL **during render** (render-phase `updateState` + a layout-effect `emit`) instead of in a `useEffect`. This eliminates the one-render window where `useSearch`/`getSnapshot()` could return the *previous* route's search value immediately after navigating. Consumers no longer need "wait a tick" workarounds.
+- `useNavigate` reads the context via a ref inside its callback, avoiding capturing a stale context from the first render.
+
+### Changed
+
+- `cleanSearchObject` is no longer called from `flushNavigate` / `buildSearchString`. Top-level `undefined` values are still stripped during serialization (via `stringifySearchWith`); **nested `undefined` values inside objects are no longer removed** before serialization. (No public API change.)
+
+### Performance
+
+- `flushNavigate` reduces redundant validator calls from N+1 to 2 per flush.
+
+### Adapters
+
+- **Fixed adapter packaging for publishing.** The adapter packages previously declared `react`, the router library, and `react-url-search-state` as regular `dependencies` — including an unresolvable `"react-url-search-state": "file:../…"` reference that made the published packages uninstallable. These are now correctly declared as `peerDependencies` (the adapter must share the host app's single instance of React, the router, and the search-state context); build-time copies are kept in `devDependencies` using the published semver range (no `file:` references remain anywhere in the manifests).
+  - `react-url-search-state-adapter-react-router-dom-v6` → **0.1.0-alpha.1** (republish required to expose `useReactRouterDomV6Adapter` and the corrected peer deps)
+  - `react-url-search-state-adapter-wouter-v3` → **0.1.0-alpha.2** (`alpha.1` was already published with the old packaging)
+  - `…-react-router-dom-v5` / `…-v7` ship at `0.1.0-alpha.0` (first publish, with the corrected packaging)
+- **Fixed the v5 adapter build.** `react-router-dom@5` ships its types via `@types/react-router-dom`, but npm hoists `react-router-dom@6` (whose bundled types lack `useHistory`) to the workspace root, shadowing them. A build-time `paths` mapping in the v5 adapter's `tsconfig.json` points type resolution at `@types/react-router-dom`. (Emit is unaffected — the published `.d.ts` still imports from `react-router-dom`.)
+
+### Publishing
+
+- Each publishable package now has a `prepack` script that runs its build, so `npm publish` / `npm pack` always ships a freshly built `dist` (previously there was no pre-publish build hook, so a stale or missing `dist` could be published silently).
+
+---
+
 ## [0.1.0-alpha.5] — 2026-02-27
 
 ### Fixed

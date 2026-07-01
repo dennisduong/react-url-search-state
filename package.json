@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run build --workspaces --if-present",
     "build:types": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "preview": "vite preview",

@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.0-alpha.7] — 2026-07-01
+
+### Added
+
+- **SSR-safe layout effects.** The provider now uses an internal `useIsomorphicLayoutEffect` shim (`useLayoutEffect` in the browser, `useEffect` on the server). This silences React 18's "useLayoutEffect does nothing on the server" warning during server render; behavior is otherwise identical, since layout effects never run on the server anyway. New SSR test coverage (`ssr.server.test.tsx`, `ssr.hydration.test.tsx`) asserts state comes from the request URL, defaults apply synchronously, no warnings or `window` access occur, and server markup hydrates with no mismatch. (No public API change.)
+
+### Docs
+
+- README documents the SSR story: URL-based state is server-known and validated identically on both sides, so it renders correctly on first paint with no hydration gap, provided the adapter supplies the request URL on the server.
+- Added a `repository` field (with `directory`) to every published `package.json` so npm links back to the source.
+
+---
+
 ## [0.1.0-alpha.6] — 2026-06-25
 
 ### Breaking Changes

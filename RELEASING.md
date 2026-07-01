@@ -3,7 +3,9 @@
 This document is the exact command sequence for cutting a release of
 `react-url-search-state` and its adapters to npm.
 
-> **Current target:** `0.1.0-alpha.6` (core) + adapter bumps. Replace versions
+> **Current target:** `0.1.0-alpha.7` (core only). The adapters are unchanged
+> since the last release and are **not** republished this cycle — their peer
+> range `^0.1.0-alpha.6` already accepts core `0.1.0-alpha.7`. Replace versions
 > below if you are cutting a later release.
 
 ---
@@ -44,12 +46,8 @@ npm run build --ws --if-present
 # Full test suite (single pass)
 npm run test:run
 
-# Confirm the target versions are still free on npm
-npm view react-url-search-state@0.1.0-alpha.6 version || echo "free ✓"
-npm view react-url-search-state-adapter-react-router-dom-v5@0.1.0-alpha.0 version || echo "free ✓"
-npm view react-url-search-state-adapter-react-router-dom-v6@0.1.0-alpha.1 version || echo "free ✓"
-npm view react-url-search-state-adapter-react-router-dom-v7@0.1.0-alpha.0 version || echo "free ✓"
-npm view react-url-search-state-adapter-wouter-v3@0.1.0-alpha.2 version || echo "free ✓"
+# Confirm the target core version is still free on npm
+npm view react-url-search-state@0.1.0-alpha.7 version || echo "free ✓"
 ```
 
 ### Dry-run the tarballs
@@ -59,10 +57,6 @@ produces exactly what `npm publish` would ship. Inspect contents before publishi
 
 ```bash
 npm pack --dry-run -w react-url-search-state
-npm pack --dry-run -w react-url-search-state-adapter-react-router-dom-v5
-npm pack --dry-run -w react-url-search-state-adapter-react-router-dom-v6
-npm pack --dry-run -w react-url-search-state-adapter-react-router-dom-v7
-npm pack --dry-run -w react-url-search-state-adapter-wouter-v3
 ```
 
 Confirm each tarball includes `dist/esm`, `dist/cjs`, co-located `.d.ts`, and
@@ -70,41 +64,39 @@ Confirm each tarball includes `dist/esm`, `dist/cjs`, co-located `.d.ts`, and
 
 ---
 
-## 2. Publish (order matters)
+## 2. Publish (core only this cycle)
 
-Publish the **core first** — the adapters declare it as a peerDependency, but
-publishing core first keeps the registry consistent for anyone installing the
-adapters immediately after.
+Only the core package changed this cycle, so only the core is published. The
+adapters remain at their already-published versions.
 
-All packages carry `publishConfig: { "access": "public", "tag": "alpha" }`, so
-they publish to the **`alpha`** dist-tag (not `latest`) automatically. The
+The core carries `publishConfig: { "access": "public", "tag": "alpha" }`, so it
+publishes to the **`alpha`** dist-tag (not `latest`) automatically. The
 `prepack` hook rebuilds `dist` on each publish.
 
 ```bash
-# 1) Core
 npm publish -w react-url-search-state
-
-# 2) Adapters (any order among themselves)
-npm publish -w react-url-search-state-adapter-react-router-dom-v5
-npm publish -w react-url-search-state-adapter-react-router-dom-v6
-npm publish -w react-url-search-state-adapter-react-router-dom-v7
-npm publish -w react-url-search-state-adapter-wouter-v3
 ```
 
-If a publish fails midway, fix the issue and re-run only the failed package —
-already-published versions are immutable and cannot be re-published.
+If the publish fails, fix the issue and re-run — already-published versions are
+immutable and cannot be re-published.
+
+> When a future release does change the adapters, publish **core first** (the
+> adapters declare it as a peerDependency), then the adapters in any order:
+>
+> ```bash
+> npm publish -w react-url-search-state-adapter-react-router-dom-v5
+> npm publish -w react-url-search-state-adapter-react-router-dom-v6
+> npm publish -w react-url-search-state-adapter-react-router-dom-v7
+> npm publish -w react-url-search-state-adapter-wouter-v3
+> ```
 
 ---
 
 ## 3. Post-publish verification
 
 ```bash
-# Confirm each version is live on the alpha tag
-npm view react-url-search-state dist-tags
-npm view react-url-search-state-adapter-react-router-dom-v5 dist-tags
-npm view react-url-search-state-adapter-react-router-dom-v6 dist-tags
-npm view react-url-search-state-adapter-react-router-dom-v7 dist-tags
-npm view react-url-search-state-adapter-wouter-v3 dist-tags
+# Confirm the core version is live on the alpha tag
+npm view react-url-search-state dist-tags   # alpha should now be 0.1.0-alpha.7
 
 # Smoke-install into a throwaway dir
 cd "$(mktemp -d)"
@@ -116,15 +108,14 @@ npm i react-url-search-state@alpha react-url-search-state-adapter-react-router-d
 
 ## 4. `latest` dist-tag (decide explicitly)
 
-⚠️ The `latest` tag is currently **stale** — it points at an old prerelease
-(`0.1.0-alpha.1`), so a plain `npm install react-url-search-state` does **not**
-get this release. While still in alpha this is arguably correct (you don't want
-`latest` resolving to a prerelease). If you *do* want `latest` to track the
-newest alpha, move it manually after publishing:
+ℹ️ For core, `latest` currently points at `0.1.0-alpha.6` (the previous
+release moved it off the old `0.1.0-alpha.1`). So a plain
+`npm install react-url-search-state` resolves to a prerelease. While still in
+alpha you may prefer `latest` to lag behind the newest alpha; decide explicitly.
+To move `latest` to this release:
 
 ```bash
-npm dist-tag add react-url-search-state@0.1.0-alpha.6 latest
-# (repeat per package if desired)
+npm dist-tag add react-url-search-state@0.1.0-alpha.7 latest
 ```
 
 This is a registry operation, not a code change — make it only when you
@@ -135,18 +126,18 @@ intend `npm install <pkg>` (no tag) to resolve to this release.
 ## 5. Tag the release in git
 
 ```bash
-git tag react-url-search-state@0.1.0-alpha.6
-git push origin react-url-search-state@0.1.0-alpha.6
+git tag react-url-search-state@0.1.0-alpha.7
+git push origin react-url-search-state@0.1.0-alpha.7
 ```
 
 ---
 
 ## Package / version reference
 
-| Package | This release | Tag |
-| --- | --- | --- |
-| `react-url-search-state` | `0.1.0-alpha.6` | `alpha` |
-| `react-url-search-state-adapter-react-router-dom-v5` | `0.1.0-alpha.0` | `alpha` |
-| `react-url-search-state-adapter-react-router-dom-v6` | `0.1.0-alpha.1` | `alpha` |
-| `react-url-search-state-adapter-react-router-dom-v7` | `0.1.0-alpha.0` | `alpha` |
-| `react-url-search-state-adapter-wouter-v3` | `0.1.0-alpha.2` | `alpha` |
+| Package | This release | Tag | Published this cycle? |
+| --- | --- | --- | --- |
+| `react-url-search-state` | `0.1.0-alpha.7` | `alpha` | ✅ yes |
+| `react-url-search-state-adapter-react-router-dom-v5` | `0.1.0-alpha.0` | `alpha` | no (unchanged) |
+| `react-url-search-state-adapter-react-router-dom-v6` | `0.1.0-alpha.1` | `alpha` | no (unchanged) |
+| `react-url-search-state-adapter-react-router-dom-v7` | `0.1.0-alpha.0` | `alpha` | no (unchanged) |
+| `react-url-search-state-adapter-wouter-v3` | `0.1.0-alpha.2` | `alpha` | no (unchanged) |

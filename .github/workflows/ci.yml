@@ -28,8 +28,13 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
 
+      # `npm install` (not `npm ci`) is deliberate: the committed lockfile only
+      # records the native optional deps (rollup, esbuild) for the platform it
+      # was generated on. `npm ci` follows the lock strictly and cannot install
+      # the Linux binaries, so it fails on the runner. `npm install` resolves
+      # the correct platform binaries while still honoring locked versions.
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Lint
         run: npm run lint

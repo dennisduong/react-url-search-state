@@ -2,11 +2,11 @@ import {
   createContext,
   createElement,
   useContext,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react";
 
+import { useIsomorphicLayoutEffect } from "./useIsomorphicLayoutEffect";
 import type { SearchMiddleware } from "./middleware";
 import { SearchStore } from "./store";
 import type {
@@ -97,14 +97,14 @@ export function SearchStateProvider(props: SearchStateProviderProps) {
     needsNotifyRef.current = store.updateState(location.search);
   }
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (needsNotifyRef.current) {
       needsNotifyRef.current = false;
       store.emit();
     }
   });
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     return () => {
       navigationQueue.destroy();
     };

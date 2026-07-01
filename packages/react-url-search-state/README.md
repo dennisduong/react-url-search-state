@@ -17,6 +17,7 @@
 - **Structural sharing** — Unchanged subtrees keep referential equality (no wasted rerenders)
 - **Batched navigation** — Multiple updates in one frame are flushed as a single URL change
 - **Middleware pipeline** — Intercept, transform, or cancel navigations with composable middleware
+- **Pluggable serialization** — Override the default JSON-ish codec with your own parser/serializer
 - **Zero non-React deps** — The core library has no dependencies beyond React
 
 ---
@@ -493,6 +494,50 @@ const { useNavigate } = createSearchUtils(validateSearch, {
 ### Interaction with `onBeforeNavigate`
 
 `onBeforeNavigate` fires **after** the middleware pipeline, receiving the final transformed values. If middleware cancels the navigation, `onBeforeNavigate` does not fire.
+
+---
+
+## Custom serialization
+
+By default, search params are (de)serialized with a JSON-ish scheme (borrowed from TanStack Router's `qss`): `"true"` becomes `true`, `"123"` becomes `123`, and JSON-encoded values are parsed automatically. Override this per provider with the `parseSearch` and `stringifySearch` props — for example to base64-encode values, use a different delimiter, or plug in a schema library's codec.
+
+```tsx
+import { SearchStateProvider } from "react-url-search-state";
+
+<SearchStateProvider
+  adapter={useReactRouterDomV6Adapter}
+  parseSearch={myParseSearch}
+  stringifySearch={myStringifySearch}
+>
+  {children}
+</SearchStateProvider>
+```
+
+- `parseSearch(searchStr)` receives the raw search string (with or without the leading `?`) and returns a `Record<string, unknown>`.
+- `stringifySearch(search)` receives a search object and returns a `?`-prefixed string (or `""` when empty).
+
+### `parseSearchWith` / `stringifySearchWith`
+
+Writing a correct parser/serializer by hand is fiddly — you have to handle URL encoding, repeated keys, and empty output. The exported `parseSearchWith` / `stringifySearchWith` helpers build a full (de)serializer from a single **value-level** codec, reusing the library's key handling:
+
+```ts
+import {
+  parseSearchWith,
+  stringifySearchWith,
+} from "react-url-search-state";
+
+// Store each value as base64-encoded JSON
+const parseSearch = parseSearchWith((value) => JSON.parse(atob(value)));
+const stringifySearch = stringifySearchWith(
+  (value) => btoa(JSON.stringify(value)),
+  JSON.parse, // treat JSON-looking strings as values to encode too
+);
+```
+
+- `parseSearchWith(parser)` runs `parser` on each decoded string value, silently keeping the raw string if `parser` throws.
+- `stringifySearchWith(stringify, parser?)` runs `stringify` on object values (and, when `parser` is provided, on strings that round-trip through it), drops `undefined` keys, and returns a `?`-prefixed string.
+
+The library's defaults are exactly `parseSearchWith(JSON.parse)` and `stringifySearchWith(JSON.stringify)`.
 
 ---
 

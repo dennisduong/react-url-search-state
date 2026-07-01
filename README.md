@@ -544,6 +544,40 @@ const hooks = createSearchUtils(validateSearch, {
 
 ---
 
+## Server-Side Rendering
+
+Search-param state is uniquely well-suited to SSR: it lives in the request URL, which the server already has synchronously — before the first byte is sent. There's nothing to fetch, await, or reconcile after hydration.
+
+Because the same URL flows through the same pure `validateSearch` function on both the server and the client, both produce an identical validated object. That's the whole hydration contract, and it's satisfied by design:
+
+- **No flash of default state** — defaults for missing params are applied during the first (server) render, not in a post-hydration effect. Filters, pagination, and tabs render correctly on first paint.
+- **No hydration mismatches** — server and client initialize the store from the same URL and validate it the same way, so the first client render matches the server HTML.
+- **SEO-friendly** — search-param-driven content is fully present in the server-rendered HTML.
+
+The core library is SSR-safe: it never reads `window`, `document`, or `localStorage` during render or at module load, and browser-only effects degrade gracefully on the server.
+
+### The adapter supplies the URL
+
+Whether the server knows the request URL is a router/framework concern, which is exactly what the [adapter](#adapters) abstracts. As long as your adapter provides `location.search` on the server — which framework routers do during their server render — the core renders correctly there with no SSR-specific configuration.
+
+```tsx
+// A static, hook-shaped adapter for a known request URL (e.g. built from req.url).
+// Navigation is a no-op because there is nowhere to navigate to on the server.
+import type { SearchStateAdapter } from "react-url-search-state";
+
+function createStaticAdapter(search: string): SearchStateAdapter {
+  return {
+    location: { pathname: "/", search, hash: "" },
+    pushState: () => {},
+    replaceState: () => {},
+  };
+}
+```
+
+> **Note:** `hash` is not available on the server in some frameworks (e.g. Next.js App Router), so hash-driven state can't participate in SSR there. Search and pathname are unaffected.
+
+---
+
 ## Why This Library?
 
 Inspired by [TanStack Router](https://tanstack.com/router)'s philosophy of treating search params as typed state, and the adapter pattern of [use-query-params](https://github.com/pbeshai/use-query-params), this library aims to:

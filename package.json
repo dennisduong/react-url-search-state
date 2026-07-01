@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run build:core && npm run build:adapters",
+    "build:core": "npm run build --workspace react-url-search-state",
+    "build:adapters": "npm run build --workspace react-url-search-state-adapter-react-router-dom-v5 --workspace react-url-search-state-adapter-react-router-dom-v6 --workspace react-url-search-state-adapter-react-router-dom-v7 --workspace react-url-search-state-adapter-wouter-v3 --if-present",
     "build:types": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "preview": "vite preview",

@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, build & test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # The committed package-lock.json is generated on macOS and only records
+      # the native optional deps (rollup, esbuild) for darwin. With that lock
+      # present, neither `npm ci` nor `npm install` will pull the Linux binaries,
+      # so the build fails with "Cannot find module @rollup/rollup-linux-x64-gnu"
+      # (npm/cli#4828). Removing the lock forces a fresh, platform-correct
+      # resolution on the runner. node_modules is already absent on a clean
+      # checkout, so only the lockfile needs removing.
+      - name: Install dependencies
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test:run

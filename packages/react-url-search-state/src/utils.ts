@@ -286,38 +286,3 @@ export function deepEqual(
   return false;
 }
 
-export function isEmptyObject(value: unknown): value is Record<string, never> {
-  return typeof value === "object" && value !== null && Object.keys(value).length === 0;
-}
-
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/**
- * Recursively removes `undefined` values from an object.
- *
- * Used internally before stringifying search state for URL updates.
- * Ensures the final query string is as compact and clean as possible.
- */
-export function cleanSearchObject(input: Record<string, unknown>) {
-  const result: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(input)) {
-    if (value === undefined) continue;
-
-    if (Array.isArray(value)) {
-      const cleanedArray = value
-        .map((v) => isRecord(v) ? cleanSearchObject(v) : v)
-        .filter((v) => v !== undefined && !isEmptyObject(v));
-
-      result[key] = cleanedArray;
-    } else if (isRecord(value)) {
-      result[key] = cleanSearchObject(value);
-    } else {
-      result[key] = value;
-    }
-  }
-
-  return result;
-}

@@ -17,6 +17,8 @@ describe("flushNavigate (functional queue)", () => {
   let pushSpy: ReturnType<typeof vi.fn>;
   let replaceSpy: ReturnType<typeof vi.fn>;
 
+  const passthrough = defineValidateSearch((search) => search);
+
   beforeEach(() => {
     store = new SearchStore("?init=1");
 
@@ -45,12 +47,14 @@ describe("flushNavigate (functional queue)", () => {
         merge: true,
         options: {},
         path: {},
+        validator: passthrough,
       },
       {
         search: { y: 2 },
         merge: true,
         options: {},
         path: { pathname: "/new" },
+        validator: passthrough,
       },
     ];
 
@@ -81,6 +85,7 @@ describe("flushNavigate (functional queue)", () => {
         merge: true,
         options: { replace: true },
         path: { hash: "#z" },
+        validator: passthrough,
       },
     ];
 
@@ -111,6 +116,7 @@ describe("flushNavigate (functional queue)", () => {
         merge: true,
         options: {},
         path: {},
+        validator: passthrough,
       },
     ];
 

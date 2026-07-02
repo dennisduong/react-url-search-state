@@ -16,12 +16,16 @@ export type InferValidatedSearch<T extends ValidateSearchFn> = ReturnType<T>;
 /**
  * Error thrown when `validateSearch` fails to parse the current state.
  *
- * This is surfaced in hooks like `useSearch`, `useSetSearch`, and `useSearchNavigate`
+ * This is surfaced in hooks like `useSearch`, `useSetSearch`, and `useNavigate`
  * if the provided validator throws an exception.
+ *
+ * The original error is preserved on `.cause`, so structured payloads (e.g.
+ * a Zod `ZodError`'s `.issues`) and the original stack trace remain
+ * accessible for debugging.
  */
 export class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
     this.name = "ValidationError";
   }
 }
@@ -79,6 +83,7 @@ export function runValidateSearchOrThrow(
   } catch (error) {
     throw new ValidationError(
       error instanceof Error ? error.message : `Uncaught error: ${error}`,
+      { cause: error },
     );
   }
 }

@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **`toValue` no longer throws on malformed double-encoded values.** A search param like `?q=%25E0` previously crashed `SearchStateProvider` on mount with an uncaught `URIError`, since `decodeURIComponent` was called without a try/catch. Decoding now falls back to the raw string on failure, consistent with the library's "parse errors are silent" contract.
+- **Batched navigations from multiple validators are now all re-validated.** When `navigate()` calls bound to *different* validators (e.g. two routes, or two `createSearchUtils` factories on the same page) landed in the same animation frame, the final normalization pass previously re-ran only the last call's validator — so keys governed exclusively by an earlier validator could reach the URL un-normalized. The final pass now re-validates with every distinct validator involved in the batch, applied in the order each validator was last used (so, consistent with the rest of the batching behavior, a later navigation's validator has the final say on any key it shares with an earlier one).
+
+  **Behavior change:** a validator rejecting the fully-merged batch will now throw `ValidationError` and drop the whole navigation, even if that same validator did not reject its own individual call. Previously such a conflict could silently reach the URL. If you have multiple differently-validated hooks that may navigate in the same frame, consider whether their validators can now interact through this shared re-validation pass.
+- `ValidationError` now preserves the original thrown value via the standard `.cause` property, so a validator's stack trace or structured error payload (e.g. a Zod `ZodError`'s `.issues`) is no longer discarded.
+
+### Changed
+
+- Removed `cleanSearchObject`, an internal utility that was never called anywhere in the library despite a doc comment claiming otherwise. No public API was affected.
+
+### Docs
+
+- Fixed stale references to a nonexistent `createSearch()` factory (the real export is `createSearchUtils()`) and a nonexistent `useSearchNavigate` hook (the real export is `useNavigate`) in several JSDoc comments.
+
+---
+
 ## [0.1.0-alpha.7] — 2026-07-01
 
 ### Added

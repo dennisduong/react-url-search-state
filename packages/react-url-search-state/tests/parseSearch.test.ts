@@ -32,6 +32,28 @@ describe("parseSearch", () => {
     const result = parseSearch("");
     expect(result).toEqual({});
   });
+
+  describe("malformed input (permissive parsing, must never throw)", () => {
+    it("does not throw on double-encoded invalid escape sequences", () => {
+      // URLSearchParams decodes "%25E0" to "%E0", which is an invalid UTF-8
+      // escape sequence — decodeURIComponent("%E0") throws URIError.
+      // Regression: this used to crash SearchStateProvider on mount.
+      expect(() => parseSearch("?q=%25E0")).not.toThrow();
+      expect(parseSearch("?q=%25E0")).toEqual({ q: "%E0" });
+    });
+
+    it("still decodes valid double-encoded values", () => {
+      expect(parseSearch("?q=%2520hello")).toEqual({ q: " hello" });
+    });
+
+    it("does not throw on a lone percent sign", () => {
+      expect(parseSearch("?q=%")).toEqual({ q: "%" });
+    });
+
+    it("does not throw on percent followed by non-hex characters", () => {
+      expect(parseSearch("?q=%GG")).toEqual({ q: "%GG" });
+    });
+  });
 });
 
 describe("stringifySearch", () => {

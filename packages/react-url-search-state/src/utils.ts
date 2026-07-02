@@ -23,12 +23,33 @@ function hasUriEncodedChars(inputString: string): boolean {
   return pattern.test(inputString);
 }
 
-// Copied from: https://github.com/TanStack/router/blob/v1.120.3/packages/router-core/src/qss.ts#L45C1-L54C2
+// Modified from: https://github.com/TanStack/router/blob/v1.120.3/packages/router-core/src/qss.ts#L45C1-L54C2
+//
+// Our change: the original v1.120.3 code called `decodeURIComponent` without
+// a guard, so a double-encoded value with an invalid escape sequence (e.g.
+// `?q=%25E0`, which URLSearchParams decodes to "%E0") threw an uncaught
+// URIError and crashed SearchStateProvider on mount. We wrap the decode in
+// try/catch and fall back to the raw value, per this library's permissive
+// parsing contract.
+//
+// Upstream note: TanStack Router has since rewritten `toValue` (as of
+// router-core 1.171.x) to drop the `decodeURIComponent`/`hasUriEncodedChars`
+// double-decoding entirely and rely solely on URLSearchParams decoding —
+// which fixes the same crash by removing double-decode support. We keep the
+// v1.120.3 double-decode behavior (guarded) so existing double-encoded URLs
+// continue to parse the same way. If we ever re-sync with upstream, that
+// behavioral difference is the thing to reconcile.
 function toValue(mix: any) {
   if (!mix) return "";
-  const str = hasUriEncodedChars(mix)
-    ? decodeURIComponent(mix)
-    : decodeURIComponent(encodeURIComponent(mix));
+  let str: string;
+  try {
+    str = hasUriEncodedChars(mix)
+      ? decodeURIComponent(mix)
+      : decodeURIComponent(encodeURIComponent(mix));
+  } catch {
+    // Invalid escape sequences: keep the raw value — parsing is permissive.
+    str = mix;
+  }
 
   if (str === "false") return false;
   if (str === "true") return true;

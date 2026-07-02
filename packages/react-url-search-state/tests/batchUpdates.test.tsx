@@ -8,7 +8,7 @@ import {
   composeValidateSearch,
   createSearchUtils,
 } from "../src";
-import type { SearchStateAdapter, Path } from "../src";
+import type { SearchMiddleware, SearchStateAdapter, Path } from "../src";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -357,5 +357,115 @@ describe("Batch updates — real-world multi-component scenarios", () => {
 
     // No actual state change — adapter should not be called
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Hooks bound to different validators in the same frame ──────────────────
+
+const validatePagination = defineValidateSearch((search) => {
+  const page = Number(search.page);
+  return { page: Number.isInteger(page) && page > 0 ? page : 1 };
+});
+
+const validateFilter = defineValidateSearch((search) => ({
+  q: typeof search.q === "string" ? search.q : "",
+}));
+
+describe("Batch updates — hooks bound to different validators", () => {
+  it("each validator normalizes its own keys in the final pass", () => {
+    const adapter = createTestAdapter("?page=1&q=a");
+    const spy = vi.spyOn(adapter, "pushState");
+
+    const { useNavigate: usePaginationNavigate } =
+      createSearchUtils(validatePagination);
+    const { useNavigate: useFilterNavigate } = createSearchUtils(validateFilter);
+
+    const PageSetter = () => {
+      const navigate = usePaginationNavigate();
+      useEffect(() => {
+        navigate({ search: { page: -5 } });
+      }, []);
+      return null;
+    };
+
+    const FilterSetter = () => {
+      const navigate = useFilterNavigate();
+      useEffect(() => {
+        navigate({ search: { q: "hello" } });
+      }, []);
+      return null;
+    };
+
+    const useAdapter = () => adapter;
+    render(
+      <SearchStateProvider adapter={useAdapter}>
+        <PageSetter />
+        <FilterSetter />
+      </SearchStateProvider>,
+    );
+
+    vi.runAllTimers();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const params = new URLSearchParams(spy.mock.calls[0]?.[1]?.search);
+    // page: -5 is clamped by validatePagination even though the filter
+    // navigation (bound to validateFilter) was the last one in the frame
+    expect(params.get("page")).toBe("1");
+    expect(params.get("q")).toBe("hello");
+  });
+
+  it("hook-level middleware runs only from the hook that scheduled the frame (current first-scheduler-wins behavior)", () => {
+    const adapter = createTestAdapter("?page=1&q=a");
+    const spy = vi.spyOn(adapter, "pushState");
+
+    const firstMiddleware: SearchMiddleware<{ page: number }> = vi.fn(
+      (ctx) => ctx.next(),
+    );
+    const secondMiddleware: SearchMiddleware<{ q: string }> = vi.fn(
+      (ctx) => ctx.next(),
+    );
+
+    const { useNavigate: usePaginationNavigate } = createSearchUtils(
+      validatePagination,
+      { middleware: [firstMiddleware] },
+    );
+    const { useNavigate: useFilterNavigate } = createSearchUtils(
+      validateFilter,
+      { middleware: [secondMiddleware] },
+    );
+
+    const PageSetter = () => {
+      const navigate = usePaginationNavigate();
+      useEffect(() => {
+        navigate({ search: { page: 2 } });
+      }, []);
+      return null;
+    };
+
+    const FilterSetter = () => {
+      const navigate = useFilterNavigate();
+      useEffect(() => {
+        navigate({ search: { q: "hello" } });
+      }, []);
+      return null;
+    };
+
+    const useAdapter = () => adapter;
+    render(
+      <SearchStateProvider adapter={useAdapter}>
+        <PageSetter />
+        <FilterSetter />
+      </SearchStateProvider>,
+    );
+
+    vi.runAllTimers();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    // The first navigate call of the frame registers the flush callback, so
+    // only its hook's middleware runs against the merged result. Documented
+    // status quo (see F3b in CODE_ANALYSIS.md) — if this test starts failing,
+    // multi-hook middleware semantics changed and F3b should be revisited.
+    expect(firstMiddleware).toHaveBeenCalledTimes(1);
+    expect(secondMiddleware).not.toHaveBeenCalled();
   });
 });

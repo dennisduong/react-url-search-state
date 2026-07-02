@@ -30,10 +30,14 @@ export function flushNavigate(
   let finalSearch = store.getState();
   let finalPath: Path = {};
   let finalOpts: NavigateOptions = {};
-  let lastValidator: ValidateSearchFn | undefined;
+  const validators = new Set<ValidateSearchFn>();
   for (const { search, merge, options, path, validator } of pendingQueue) {
     if (validator) {
-      lastValidator = validator;
+      // Delete-then-add keeps insertion order at the validator's *last*
+      // occurrence, so the final re-validation chain below honors the same
+      // "later navigation wins" rule as the merge loop for overlapping keys.
+      validators.delete(validator);
+      validators.add(validator);
       const validated = runValidateSearchOrThrow(validator, finalSearch);
       finalSearch = merge
         ? { ...finalSearch, ...validated }
@@ -53,8 +57,8 @@ export function flushNavigate(
     finalPath = { ...finalPath, ...path };
     finalOpts = { ...finalOpts, ...options };
   }
-  if (lastValidator) {
-    const reValidated = runValidateSearchOrThrow(lastValidator, finalSearch);
+  for (const validator of validators) {
+    const reValidated = runValidateSearchOrThrow(validator, finalSearch);
     const overrides: Record<string, unknown> = {};
     for (const key of Object.keys(reValidated)) {
       if (finalSearch[key] !== undefined) {

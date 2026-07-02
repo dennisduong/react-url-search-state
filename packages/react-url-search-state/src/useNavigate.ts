@@ -32,28 +32,20 @@ export function flushNavigate(
   let finalOpts: NavigateOptions = {};
   const validators = new Set<ValidateSearchFn>();
   for (const { search, merge, options, path, validator } of pendingQueue) {
-    if (validator) {
-      // Delete-then-add keeps insertion order at the validator's *last*
-      // occurrence, so the final re-validation chain below honors the same
-      // "later navigation wins" rule as the merge loop for overlapping keys.
-      validators.delete(validator);
-      validators.add(validator);
-      const validated = runValidateSearchOrThrow(validator, finalSearch);
-      finalSearch = merge
-        ? { ...finalSearch, ...validated }
-        : Object.fromEntries(
-            Object.keys(validated).map((k) => [k, undefined]),
-          );
-      const userSearch =
-        typeof search === "function" ? search(validated) : search;
-      finalSearch = { ...finalSearch, ...userSearch };
-    } else {
-      const userSearch =
-        typeof search === "function" ? search(finalSearch) : search;
-      finalSearch = merge
-        ? { ...finalSearch, ...userSearch }
-        : userSearch;
-    }
+    // Delete-then-add keeps insertion order at the validator's *last*
+    // occurrence, so the final re-validation chain below honors the same
+    // "later navigation wins" rule as the merge loop for overlapping keys.
+    validators.delete(validator);
+    validators.add(validator);
+    const validated = runValidateSearchOrThrow(validator, finalSearch);
+    finalSearch = merge
+      ? { ...finalSearch, ...validated }
+      : Object.fromEntries(
+          Object.keys(validated).map((k) => [k, undefined]),
+        );
+    const userSearch =
+      typeof search === "function" ? search(validated) : search;
+    finalSearch = { ...finalSearch, ...userSearch };
     finalPath = { ...finalPath, ...path };
     finalOpts = { ...finalOpts, ...options };
   }

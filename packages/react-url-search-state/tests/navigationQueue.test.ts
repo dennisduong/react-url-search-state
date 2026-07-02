@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { NavigationQueue } from "../src/navigationQueue";
+import { defineValidateSearch } from "../src/validation";
+
+const passthrough = defineValidateSearch((search) => search);
 
 describe("NavigationQueue.schedule()", () => {
   afterEach(() => {
@@ -73,6 +76,7 @@ describe("NavigationQueue.destroy()", () => {
       merge: true,
       options: {},
       path: {},
+      validator: passthrough,
     });
 
     expect(queue.frameRef).not.toBeNull();
@@ -89,8 +93,8 @@ describe("NavigationQueue.destroy()", () => {
     const queue = new NavigationQueue();
 
     queue.frameRef = requestAnimationFrame(() => {});
-    queue.items.push({ search: {}, merge: true, options: {}, path: {} });
-    queue.items.push({ search: {}, merge: true, options: { replace: true }, path: { pathname: "/foo" } });
+    queue.items.push({ search: {}, merge: true, options: {}, path: {}, validator: passthrough });
+    queue.items.push({ search: {}, merge: true, options: { replace: true }, path: { pathname: "/foo" }, validator: passthrough });
 
     queue.destroy();
 
@@ -115,7 +119,7 @@ describe("NavigationQueue.destroy()", () => {
     const queue = new NavigationQueue();
 
     queue.frameRef = requestAnimationFrame(() => {});
-    queue.items.push({ search: {}, merge: true, options: {}, path: {} });
+    queue.items.push({ search: {}, merge: true, options: {}, path: {}, validator: passthrough });
 
     queue.destroy();
     expect(() => queue.destroy()).not.toThrow();

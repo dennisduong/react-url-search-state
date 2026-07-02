@@ -30,10 +30,14 @@ export function flushNavigate(
   let finalSearch = store.getState();
   let finalPath: Path = {};
   let finalOpts: NavigateOptions = {};
-  let lastValidator: ValidateSearchFn | undefined;
+  const validators = new Set<ValidateSearchFn>();
   for (const { search, merge, options, path, validator } of pendingQueue) {
     if (validator) {
-      lastValidator = validator;
+      // Delete-then-add keeps insertion order at the validator's *last*
+      // occurrence, so the final re-validation chain below honors the same
+      // "later navigation wins" rule as the merge loop for overlapping keys.
+      validators.delete(validator);
+      validators.add(validator);
       const validated = runValidateSearchOrThrow(validator, finalSearch);
       finalSearch = merge
         ? { ...finalSearch, ...validated }
@@ -53,11 +57,19 @@ export function flushNavigate(
     finalPath = { ...finalPath, ...path };
     finalOpts = { ...finalOpts, ...options };
   }
-  if (lastValidator) {
-    const reValidated = runValidateSearchOrThrow(lastValidator, finalSearch);
+  // Snapshot which keys are defined before the chain runs: a validator may
+  // return explicit `undefined` for a key ("drop this param") without taking
+  // that key off-limits for later validators in the chain, while keys that
+  // are absent or cleared (merge:false, user-set undefined) stay protected
+  // from re-injected validator defaults.
+  const revalidatableKeys = new Set(
+    Object.keys(finalSearch).filter((key) => finalSearch[key] !== undefined),
+  );
+  for (const validator of validators) {
+    const reValidated = runValidateSearchOrThrow(validator, finalSearch);
     const overrides: Record<string, unknown> = {};
     for (const key of Object.keys(reValidated)) {
-      if (finalSearch[key] !== undefined) {
+      if (revalidatableKeys.has(key)) {
         overrides[key] = reValidated[key];
       }
     }

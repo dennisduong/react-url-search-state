@@ -57,11 +57,19 @@ export function flushNavigate(
     finalPath = { ...finalPath, ...path };
     finalOpts = { ...finalOpts, ...options };
   }
+  // Snapshot which keys are defined before the chain runs: a validator may
+  // return explicit `undefined` for a key ("drop this param") without taking
+  // that key off-limits for later validators in the chain, while keys that
+  // are absent or cleared (merge:false, user-set undefined) stay protected
+  // from re-injected validator defaults.
+  const revalidatableKeys = new Set(
+    Object.keys(finalSearch).filter((key) => finalSearch[key] !== undefined),
+  );
   for (const validator of validators) {
     const reValidated = runValidateSearchOrThrow(validator, finalSearch);
     const overrides: Record<string, unknown> = {};
     for (const key of Object.keys(reValidated)) {
-      if (finalSearch[key] !== undefined) {
+      if (revalidatableKeys.has(key)) {
         overrides[key] = reValidated[key];
       }
     }

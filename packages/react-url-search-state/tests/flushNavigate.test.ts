@@ -255,6 +255,46 @@ describe("flushNavigate (multi-validator batching)", () => {
     expect(finalSearch.q).toBe("x");
   });
 
+  it("a validator's explicit-undefined output does not shield the key from later validators", () => {
+    // "invalid → drop the param" style validator
+    const validateDropInvalid = defineValidateSearch((search) => ({
+      page: Number(search.page) > 0 ? Number(search.page) : undefined,
+    }));
+
+    makeContext("?init=1");
+    const queue = [
+      { search: {}, merge: true, options: {}, path: {}, validator: validateDropInvalid },
+      { search: { page: -5 }, merge: true, options: {}, path: {}, validator: validatePage },
+    ];
+
+    const callback = vi.fn();
+    flushNavigate(context, callback, queue);
+
+    // chain [dropInvalid, validatePage]: dropInvalid maps -5 → undefined, but
+    // validatePage came later in the frame so its clamp has the final say —
+    // and the navigation must not be swallowed by the identical-URL dedup
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback.mock.calls[0]?.[0].page).toBe(1);
+  });
+
+  it("a validator can still drop a param via explicit undefined when no later validator reclaims it", () => {
+    const validateDropInvalid = defineValidateSearch((search) => ({
+      page: Number(search.page) > 0 ? Number(search.page) : undefined,
+    }));
+
+    makeContext("?page=5");
+    const queue = [
+      { search: { page: -5 }, merge: true, options: {}, path: {}, validator: validateDropInvalid },
+    ];
+
+    const callback = vi.fn();
+    flushNavigate(context, callback, queue);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback.mock.calls[0]?.[0].page).toBeUndefined();
+    expect(callback.mock.calls[0]?.[1].search).toBe(stringifySearch({}));
+  });
+
   it("a mid-chain validation failure drops the whole flush atomically", () => {
     const validateNoBoom = defineValidateSearch((search) => {
       if (search.q === "boom") throw new Error("q must not be boom");

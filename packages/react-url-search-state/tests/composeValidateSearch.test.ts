@@ -203,6 +203,40 @@ describe("composeValidateSearch — error propagation", () => {
 
     expect(() => runValidateSearchOrThrow(composed, {})).toThrow(ValidationError);
   });
+
+  it("preserves the original error on ValidationError.cause", () => {
+    const original = new Error("required is missing");
+    const strictBase = defineValidateSearch((search) => {
+      if (!search.required) throw original;
+      return { required: search.required as string };
+    });
+    const composed = composeValidateSearch(strictBase, (_base, _raw) => ({}));
+
+    try {
+      runValidateSearchOrThrow(composed, {});
+      expect.unreachable("expected runValidateSearchOrThrow to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ValidationError);
+      expect((error as ValidationError).cause).toBe(original);
+    }
+  });
+
+  it("sets cause to the raw thrown value when a non-Error is thrown", () => {
+    const composed = composeValidateSearch(
+      defineValidateSearch((_raw) => ({})),
+      (_base, _raw) => {
+        throw "not an Error instance";
+      },
+    );
+
+    try {
+      runValidateSearchOrThrow(composed, {});
+      expect.unreachable("expected runValidateSearchOrThrow to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ValidationError);
+      expect((error as ValidationError).cause).toBe("not an Error instance");
+    }
+  });
 });
 
 // ─── Integration with defineValidateSearch ────────────────────────────────────

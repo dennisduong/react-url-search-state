@@ -18,7 +18,7 @@ export type SetSearchFunction<T extends ValidateSearchFn> = <
 /**
  * Updates the validated search state.
  *
- * This is a convenience hook built on top of `useSearchNavigate`,
+ * This is a convenience hook built on top of `useNavigate`,
  * scoped to search param updates only (no pathname or hash support).
  *
  * Supports:

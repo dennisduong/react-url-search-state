@@ -27,8 +27,8 @@ import type { ValidateSearchFn, ResolveValidatorFn } from "./validation";
  * const search = buildSearchString(validateSearch, { page: 2 });
  * const href = `/results${search}`;
  *
- * // Pre-bound via createSearch factory
- * const { buildSearchString } = createSearch(validateSearch);
+ * // Pre-bound via createSearchUtils factory
+ * const { buildSearchString } = createSearchUtils(validateSearch);
  * const search = buildSearchString({ page: 2 });
  * ```
  *

@@ -12,7 +12,7 @@ export type QueueItem = {
   merge: boolean;
   options: NavigateOptions;
   path: Pick<Path, "hash" | "pathname">;
-  validator?: ValidateSearchFn;
+  validator: ValidateSearchFn;
 };
 
 export class NavigationQueue {

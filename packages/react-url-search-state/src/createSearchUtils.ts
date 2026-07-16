@@ -12,6 +12,7 @@ import { useSearchParamState } from "./useSearchParamState";
 import type { UseSearchParamStateReturn } from "./useSearchParamState";
 import { useSetSearch } from "./useSetSearch";
 import type { SetSearchFunction } from "./useSetSearch";
+import type { OmitOptional } from "./utils";
 import type {
   InferValidatedSearch,
   ResolveValidatorFn,
@@ -25,7 +26,7 @@ type NavigateOptions<TValidateSearchFn extends ValidateSearchFn> = Omit<
 
 export type SearchUtils<TValidateSearchFn extends ValidateSearchFn> = {
   buildSearchString: (
-    params: ResolveValidatorFn<TValidateSearchFn>,
+    params: OmitOptional<ResolveValidatorFn<TValidateSearchFn>>,
   ) => string;
   useNavigate: (
     options?: NavigateOptions<TValidateSearchFn>,

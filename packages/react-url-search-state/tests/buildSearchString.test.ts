@@ -31,6 +31,20 @@ describe("buildSearchString (standalone)", () => {
     });
     expect(() => buildSearchString(strictValidate, {} as any)).toThrow(ValidationError);
   });
+
+  it("allows omitting params whose type includes undefined", () => {
+    // q is `string | undefined` — omitting it must compile and behave
+    // identically to passing it explicitly
+    const omitted = buildSearchString(validateSearch, { page: 2 });
+    const explicit = buildSearchString(validateSearch, { page: 2, q: undefined });
+    expect(omitted).toBe("?page=2");
+    expect(omitted).toBe(explicit);
+  });
+
+  it("still requires params whose type excludes undefined", () => {
+    // @ts-expect-error - page is required and may not be omitted
+    buildSearchString(validateSearch, { q: "hello" });
+  });
 });
 
 describe("buildSearchString (pre-bound via createSearchUtils)", () => {
@@ -39,5 +53,21 @@ describe("buildSearchString (pre-bound via createSearchUtils)", () => {
     const { buildSearchString: bound } = createSearchUtils(validateSearch);
     const result = bound({ page: 5, q: "test" });
     expect(result).toBe("?page=5&q=test");
+  });
+
+  it("allows omitting params whose type includes undefined", async () => {
+    const { createSearchUtils } = await import("../src");
+    const { buildSearchString: bound } = createSearchUtils(validateSearch);
+    const omitted = bound({ page: 5 });
+    const explicit = bound({ page: 5, q: undefined });
+    expect(omitted).toBe("?page=5");
+    expect(omitted).toBe(explicit);
+  });
+
+  it("still requires params whose type excludes undefined", async () => {
+    const { createSearchUtils } = await import("../src");
+    const { buildSearchString: bound } = createSearchUtils(validateSearch);
+    // @ts-expect-error - page is required and may not be omitted
+    bound({ q: "test" });
   });
 });

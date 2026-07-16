@@ -1,6 +1,7 @@
 import { stringifySearch as defaultStringifySearch } from "./utils";
 import { runValidateSearchOrThrow } from "./validation";
 import type { AnySearch } from "./types";
+import type { OmitOptional } from "./utils";
 import type { ValidateSearchFn, ResolveValidatorFn } from "./validation";
 
 /**
@@ -42,7 +43,7 @@ import type { ValidateSearchFn, ResolveValidatorFn } from "./validation";
  */
 export function buildSearchString<T extends ValidateSearchFn>(
   validateSearch: T,
-  params: ResolveValidatorFn<T>,
+  params: OmitOptional<ResolveValidatorFn<T>>,
   options?: { stringifySearch?: (search: Record<string, unknown>) => string },
 ): string {
   const stringifySearch = options?.stringifySearch ?? defaultStringifySearch;
